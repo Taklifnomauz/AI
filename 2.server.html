@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mirabbos AI - Real-Time 24/7 CCTV & Agent Activity Tracker</title>
+  <style>
+    :root {
+      --bg-dark: #070a12;
+      --card-bg: rgba(18, 26, 43, 0.95);
+      --accent-blue: #2563eb;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --text-main: #f8fafc;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.4); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      overflow: hidden;
+    }
+
+    /* SERVER LOGIN MODAL OYNASI */
+    .login-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(7, 10, 18, 0.94);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      backdrop-filter: blur(12px);
+    }
+
+    .login-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 35px 30px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      text-align: center;
+    }
+
+    .login-card h2 { font-size: 20px; color: var(--accent-cyan); margin-bottom: 4px; }
+    .login-card p { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
+
+    .login-card input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    .login-card input:focus { border-color: var(--accent-blue); }
+
+    .login-card button {
+      padding: 12px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.2s;
+      margin-top: 5px;
+    }
+
+    .login-card button:hover { opacity: 0.9; transform: translateY(-1px); }
+    .error-msg { color: #ef4444; font-size: 12px; display: none; }
+
+    /* MAIN DASHBOARD */
+    .admin-dashboard {
+      display: flex;
+      width: 100%;
+      max-width: 1800px;
+      gap: 15px;
+      height: 94vh;
+    }
+
+    .canvas-container {
+      flex: 1.5;
+      background: #000;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+    }
+
+    canvas { width: 100%; flex: 1; display: block; }
+
+    /* AGENT ACTIVITY TRACKER PANEL */
+    .activity-log-panel {
+      height: 180px;
+      background: rgba(15, 23, 42, 0.95);
+      border-top: 1px solid var(--border-color);
+      padding: 10px 15px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-item {
+      padding: 3px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.03);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+    .log-agent1 { color: #60a5fa; }
+    .log-agent2 { color: #34d399; }
+    .log-agent3 { color: #c084fc; }
+
+    .client-list-panel {
+      width: 310px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+      color: var(--accent-cyan);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .client-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+    /* MIJOZ ITEM VA RASM STILI */
+    .client-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .client-item:hover, .client-item.active {
+      background: rgba(37, 99, 235, 0.18);
+      border-left: 4px solid var(--accent-cyan);
+    }
+
+    .client-avatar-mini {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .client-avatar-mini img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .chat-panel {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header-bar {
+      padding: 14px 20px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-title { font-size: 14px; font-weight: 700; color: #f8fafc; }
+
+    .msg-area {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-word;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .msg-server { align-self: flex-end; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-bottom-right-radius: 2px; }
+    .msg-client { align-self: flex-start; background: #1e293b; border: 1px solid var(--border-color); color: #f1f5f9; border-bottom-left-radius: 2px; }
+
+    .msg-info { font-size: 10px; opacity: 0.75; margin-bottom: 3px; font-weight: 600; }
+
+    .input-bar {
+      padding: 14px;
+      background: rgba(15, 23, 42, 0.9);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .input-bar input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .send-btn {
+      padding: 0 18px;
+      height: 38px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      font-size: 13px;
+      transition: 0.2s;
+    }
+    .send-btn:hover { opacity: 0.9; }
+
+    .excel-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .excel-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: 0.2s;
+    }
+    .logout-btn:hover { background: rgba(239, 68, 68, 0.4); }
+  </style>
+</head>
+<body>
+
+  <!-- SERVER LOGIN MODAL -->
+  <div id="loginModal" class="login-overlay">
+    <div class="login-card">
+      <h2>🔐 Serverga Kirish</h2>
+      <p>Boshqaruv paneliga kirish uchun login va parolni kiriting</p>
+      <input type="text" id="loginUsername" placeholder="Login (Admin)" onkeypress="handleAuthKey(event)">
+      <input type="password" id="loginPassword" placeholder="Parol (1)" onkeypress="handleAuthKey(event)">
+      <button onclick="handleLogin()">Tizimga Kirish</button>
+      <div id="loginError" class="error-msg">Login yoki parol noto'g'ri!</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PANEL -->
+  <div class="admin-dashboard">
+    <div class="canvas-container">
+      <canvas id="officeCanvas"></canvas>
+      
+      <!-- REAL-TIME SECOND-BY-SECOND ACTIVITY LOG -->
+      <div class="activity-log-panel" id="activityLog">
+        <div style="color: #06b6d4; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span>⏱️ SONIYABAY XODIMLAR HARAKATI JADVALI (24/7 TRACKER):</span>
+          <button onclick="clearActivityLogs()" style="background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;">[Tozalash]</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="client-list-panel">
+      <div class="panel-header">
+        <span>👥 Mijozlar Tizimi</span>
+        <button class="logout-btn" onclick="handleLogout()">Chiqish</button>
+      </div>
+
+      <!-- AGENT 1 EXCEL HISOBOT TUGMASI -->
+      <div style="padding: 10px 14px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; color: #94a3b8;">Boshqaruvchi: <strong style="color: #60a5fa;">Agent 1</strong></span>
+        <button class="excel-btn" onclick="triggerAgent1ExcelExport()">📊 Excel Hisobot</button>
+      </div>
+
+      <div class="client-items" id="clientListContainer"></div>
+    </div>
+
+    <div class="chat-panel">
+      <div class="header-bar">
+        <div class="header-title" id="activeChatHeader">Mijoz tanlanmagan</div>
+        <span id="statusBadge" style="font-size: 11px; color: #10b981;">🤖 Agent 1 Onlayn va Faol</span>
+      </div>
+      <div class="msg-area" id="adminMsgArea"></div>
+      <div class="input-bar">
+        <input type="text" id="adminInput" placeholder="Operatordan javob yozing (masalan: Agent 1 hisobot ber)..." onkeypress="handleKey(event)">
+        <button class="send-btn" onclick="sendAdminMsg()">Yuborish</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Canvas roundRect fallback (eski brauzerlar xavfsizligi uchun)
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        if (typeof r === 'number') r = [r, r, r, r];
+        this.beginPath();
+        this.moveTo(x + r[0], y);
+        this.lineTo(x + w - r[1], y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+        this.lineTo(x + w, y + h - r[2]);
+        this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+        this.lineTo(x + r[3], y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+        this.lineTo(x, y + r[0]);
+        this.quadraticCurveTo(x, y, x + r[0], y);
+        this.closePath();
+        return this;
+      };
+    }
+
+    function getTashkentDate() {
+      return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tashkent"}));
+    }
+
+    function getTashkentTimeString() {
+      const d = getTashkentDate();
+      return d.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    }
+
+    function checkSession() {
+      const user = localStorage.getItem('server_auth_user');
+      if (user) {
+        document.getElementById('loginModal').style.display = 'none';
+      } else {
+        document.getElementById('loginModal').style.display = 'flex';
+      }
+    }
+
+    function handleLogin() {
+      const userVal = document.getElementById('loginUsername').value.trim();
+      const passVal = document.getElementById('loginPassword').value.trim();
+      const errorDiv = document.getElementById('loginError');
+
+      if (userVal === 'Admin' && passVal === '1') {
+        localStorage.setItem('server_auth_user', 'Admin');
+        errorDiv.style.display = 'none';
+        document.getElementById('loginModal').style.display = 'none';
+      } else {
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('server_auth_user');
+      checkSession();
+    }
+
+    function handleAuthKey(e) {
+      if (e.key === 'Enter') handleLogin();
+    }
+
+    let selectedClient = null;
+    const channel = new BroadcastChannel('multi_office_system');
+
+    /* AGENT 1 VERTIKAL EXCEL HISOBOT YARATISH FUNKSIYASI */
+    function exportUsersToExcelByAgent1() {
+      try {
+        let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
+        let keys = Object.keys(usersDb);
+
+        if (keys.length === 0) {
+          usersDb = {
+            "Mijoz_01": { password: "123", birthdate: "1998-05-12", location: "Toshkent", createdAt: new Date().toISOString() },
+            "Mijoz_02": { password: "456", birthdate: "2001-09-20", location: "Samarqand", createdAt: new Date().toISOString() }
+          };
+          localStorage.setItem('users_db', JSON.stringify(usersDb));
+          keys = Object.keys(usersDb);
+        }
+
+        let csvContent = "\uFEFF";
+
+        keys.forEach((username, index) => {
+          const user = usersDb[username] || {};
+          const hasAvatar = user.avatar ? "Mavjud (Rasm yuklangan)" : "Yo'q (Bosh harf)";
+          const birthdate = user.birthdate || "Kiritilmagan";
+
+          const locStr = String(user.location || "Kiritilmagan").replace(/"/g, '""');
+          const passStr = String(user.password || "").replace(/"/g, '""');
+
+          let created = "Noma'lum";
+          if (user.createdAt) {
+            try {
+              created = new Date(user.createdAt).toLocaleString('uz-UZ');
+            } catch (e) {
+              created = String(user.createdAt);
+            }
+          }
+
+          csvContent += `"--- FOYDALANUVCHI #${index + 1} ---";""\n`;
+          csvContent += `"1. Login";"${username}"\n`;
+          csvContent += `"2. Parol";"${passStr}"\n`;
+          csvContent += `"3. Tug'ilgan sana";"${birthdate}"\n`;
+          csvContent += `"4. Qayerdaligi";"${locStr}"\n`;
+          csvContent += `"5. Profil rasmi";"${hasAvatar}"\n`;
+          csvContent += `"6. Ro'yxatdan o'tgan vaqti";"${created}"\n`;
+          csvContent += `\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Agent1_Vertikal_Hisobot_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        if (typeof addLogEntry === 'function' && typeof agentsList !== 'undefined' && agentsList[0]) {
+          addLogEntry(getTashkentTimeString(), agentsList[0], "Barcha mijozlar bazasining vertikal formatdagi Excel hisobotini muvaffaqiyatli shakllantirdi va yukladi.");
+        }
+        return true;
+      } catch (err) {
+        console.error("Excel yuklashda xatolik:", err);
+        alert("Hisobot shakllantirishda xatolik yuz berdi: " + err.message);
+        return false;
+      }
+    }
+
+    function triggerAgent1ExcelExport() {
+      exportUsersToExcelByAgent1();
+    }
+
+    /* MIJOZLAR RO'YXATINI VA RASMLARINI YUKLASH */
+    function loadClientList() {
+      let clients = JSON.parse(localStorage.getItem('active_clients_list') || '[]');
+      if (clients.length === 0) {
+        clients = ['Mijoz_01', 'Mijoz_02'];
+        localStorage.setItem('active_clients_list', JSON.stringify(clients));
+      }
+
+      const usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
+      const container = document.getElementById('clientListContainer');
+      container.innerHTML = '';
+
+      clients.forEach(client => {
+        const userData = usersDb[client] || {};
+        const div = document.createElement('div');
+        div.className = `client-item ${selectedClient === client ? 'active' : ''}`;
+        
+        let avatarHtml = '';
+        if (userData.avatar) {
+          avatarHtml = `<div class="client-avatar-mini"><img src="${userData.avatar}" alt="Avatar"></div>`;
+        } else {
+          avatarHtml = `<div class="client-avatar-mini">${client.charAt(0).toUpperCase()}</div>`;
+        }
+
+        div.innerHTML = `
+          ${avatarHtml}
+          <div style="flex:1; overflow:hidden;">
+            <div style="font-weight:700; color:#fff; font-size:12px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${client}</div>
+            <div style="font-size:10px; color:#94a3b8; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">📍 ${userData.location || 'Toshkent'}</div>
+          </div>
+        `;
+        div.onclick = () => selectClient(client);
+        container.appendChild(div);
+      });
+
+      if (!selectedClient && clients.length > 0) selectClient(clients[0]);
+    }
+
+    function selectClient(client) {
+      selectedClient = client;
+      document.getElementById('activeChatHeader').innerText = `💬 Chat: ${client}`;
+      loadClientList();
+      renderMessages();
+    }
+
+    function sendAdminMsg() {
+      if (!selectedClient) {
+        alert("Iltimos, avval mijozni tanlang!");
+        return;
+      }
+      const input = document.getElementById('adminInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const timeStr = getTashkentTimeString().slice(0, 5);
+      const msg = { id: Date.now(), sender: 'Admin', text: text, isAdmin: true, time: timeStr };
+      
+      let history = JSON.parse(localStorage.getItem(`chat_${selectedClient}`) || '[]');
+      history.push(msg);
+
+      input.value = '';
+
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('agent 1') || lowerText.includes('hisobot') || lowerText.includes('excel') || lowerText.includes('danisi')) {
+        const agentResponse = {
+          id: Date.now() + 1,
+          sender: '🤖 Agent 1 (Boshqaruvchi)',
+          text: "Xo'p bo'ladi! Barcha foydalanuvchilarning to'liq ma'lumotlari (Login, Parol, Tug'ilgan sana, Yashash joyi, Rasm, Vaqt) vertikal 6 qatorli formatda Excel (CSV) fayl ko'rinishida yuklandi.",
+          isAdmin: true,
+          time: timeStr
+        };
+        history.push(agentResponse);
+        
+        setTimeout(() => {
+          exportUsersToExcelByAgent1();
+        }, 400);
+      }
+
+      localStorage.setItem(`chat_${selectedClient}`, JSON.stringify(history));
+      channel.postMessage({ type: 'SERVER_MSG', client: selectedClient, data: msg });
+      renderMessages();
+    }
+
+    function renderMessages() {
+      if (!selectedClient) return;
+      const history = JSON.parse(localStorage.getItem(`chat_${selectedClient}`) || '[]');
+      const container = document.getElementById('adminMsgArea');
+      container.innerHTML = '';
+      history.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `msg-bubble ${msg.isAdmin ? 'msg-server' : 'msg-client'}`;
+        div.innerHTML = `<div class="msg-info">${msg.sender} • ${msg.time}</div><div>${msg.text}</div>`;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleKey(e) { if (e.key === 'Enter') sendAdminMsg(); }
+
+    /* =========================================================================
+       24/7 REAL-TIME AGENT FIZIKASI VA ISOMETRIK ANIMATSIYA
+       ========================================================================= */
+    let canvas, ctx;
+
+    let agentsList = [
+      {
+        id: 1, name: "Agent 1 (Boshqaruvchi)", colorClass: "log-agent1", shirt: '#2563eb',
+        homeX: 0, homeY: 0, currX: 0, currY: 0, targetX: 0, targetY: 0,
+        state: "WORKING", timer: 0, thirst: 10, boardNeed: 40, isWalking: false
+      },
+      {
+        id: 2, name: "Agent 2", colorClass: "log-agent2", shirt: '#10b981',
+        homeX: 0, homeY: 0, currX: 0, currY: 0, targetX: 0, targetY: 0,
+        state: "WORKING", timer: 0, thirst: 30, boardNeed: 10, isWalking: false
+      },
+      {
+        id: 3, name: "Agent 3", colorClass: "log-agent3", shirt: '#8b5cf6',
+        homeX: 0, homeY: 0, currX: 0, currY: 0, targetX: 0, targetY: 0,
+        state: "WORKING", timer: 0, thirst: 50, boardNeed: 70, isWalking: false
+      }
+    ];
+
+    window.onload = () => {
+      checkSession();
+      canvas = document.getElementById('officeCanvas');
+      ctx = canvas.getContext('2d');
+
+      function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight - 180;
+        initAgentPositions();
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      loadClientList();
+      requestAnimationFrame(gameLoop);
+
+      setInterval(secondTrackerTick, 1000);
+    };
+
+    function initAgentPositions() {
+      const w = canvas.width, h = canvas.height;
+      const deskY = h * 0.52;
+      const deskPositions = [w * 0.23, w * 0.50, w * 0.77];
+
+      agentsList.forEach((ag, idx) => {
+        ag.homeX = deskPositions[idx];
+        ag.homeY = deskY + 30;
+        if (!ag.isWalking) {
+          ag.currX = ag.homeX;
+          ag.currY = ag.homeY;
+          ag.targetX = ag.homeX;
+          ag.targetY = ag.homeY;
+        }
+      });
+    }
+
+    /* MANTIQIY TAYMER (Har 1 soniyada bir marta) */
+    function secondTrackerTick() {
+      const now = getTashkentDate();
+      const timeStr = getTashkentTimeString();
+      const hour = now.getHours();
+
+      let isNight = (hour >= 20 || hour < 8);
+
+      const coolerX = canvas.width * 0.76;
+      const coolerY = canvas.height * 0.28;
+      const boardX = canvas.width * 0.50;
+      const boardY = canvas.height * 0.28;
+
+      agentsList.forEach(ag => {
+        if (isNight) {
+          if (ag.state !== "SLEEP") {
+            ag.state = "SLEEP";
+            ag.isWalking = false;
+            ag.currX = ag.homeX;
+            ag.currY = ag.homeY;
+            addLogEntry(timeStr, ag, "Smena yakunlandi. AI Agent uyqu rejimiga o'tdi.");
+          }
+          return;
+        } else if (ag.state === "SLEEP") {
+          ag.state = "WORKING";
+          addLogEntry(timeStr, ag, "Ertalabki smena boshlandi. Agent faol rejimga o'tdi.");
+        }
+
+        if (ag.state === "WORKING") {
+          ag.thirst += Math.floor(Math.random() * 4) + 1;
+          ag.boardNeed += Math.floor(Math.random() * 3) + 1;
+
+          if (ag.thirst >= 100) {
+            ag.state = "WALKING_TO_COOLER";
+            ag.targetX = coolerX;
+            ag.targetY = coolerY;
+            ag.isWalking = true;
+            ag.thirst = 0;
+            addLogEntry(timeStr, ag, "Chanqadi va stoldan turib Kuller (suv) tomonga yura boshladi.");
+          } else if (ag.boardNeed >= 100) {
+            ag.state = "WALKING_TO_BOARD";
+            ag.targetX = boardX;
+            ag.targetY = boardY;
+            ag.isWalking = true;
+            ag.boardNeed = 0;
+            addLogEntry(timeStr, ag, "Hisobot ketma-ketligini ko'rish uchun Doska oldiga bormoqda.");
+          }
+        } else if (ag.state === "DRINKING") {
+          ag.timer--;
+          if (ag.timer <= 0) {
+            ag.state = "WALKING_BACK";
+            ag.targetX = ag.homeX;
+            ag.targetY = ag.homeY;
+            ag.isWalking = true;
+            addLogEntry(timeStr, ag, "Suv ichib bo'ldi va o'z ish stoliga qaytib yura boshladi.");
+          }
+        } else if (ag.state === "INSPECTING_BOARD") {
+          ag.timer--;
+          if (ag.timer <= 0) {
+            ag.state = "WALKING_BACK";
+            ag.targetX = ag.homeX;
+            ag.targetY = ag.homeY;
+            ag.isWalking = true;
+            addLogEntry(timeStr, ag, "Tahlilni tugatib, kompyuteri tomon qaytmoqda.");
+          }
+        }
+      });
+    }
+
+    /* HARAKAT FIZIKASI (Silliq 60 FPS) */
+    function updateAgentPositions() {
+      agentsList.forEach(ag => {
+        if (!ag.isWalking) return;
+
+        let dx = ag.targetX - ag.currX;
+        let dy = ag.targetY - ag.currY;
+        let dist = Math.hypot(dx, dy);
+
+        if (dist < 3) {
+          ag.currX = ag.targetX;
+          ag.currY = ag.targetY;
+
+          if (ag.state === "WALKING_TO_COOLER") {
+            ag.state = "DRINKING";
+            ag.isWalking = false;
+            ag.timer = 5;
+            addLogEntry(getTashkentTimeString(), ag, "Kuller yoniga yetib keldi va suv ichishni boshladi.");
+          } else if (ag.state === "WALKING_TO_BOARD") {
+            ag.state = "INSPECTING_BOARD";
+            ag.isWalking = false;
+            ag.timer = 6;
+            addLogEntry(getTashkentTimeString(), ag, "Doska qarshisida hisobot jarayoni sxemasini ko'zdan kechirmoqda.");
+          } else if (ag.state === "WALKING_BACK") {
+            ag.state = "WORKING";
+            ag.isWalking = false;
+            addLogEntry(getTashkentTimeString(), ag, "O'z joyiga o'tirdi va ish faoliyatini davom ettirmoqda.");
+          }
+        } else {
+          ag.currX += (dx / dist) * 1.8;
+          ag.currY += (dy / dist) * 1.8;
+        }
+      });
+    }
+
+    function addLogEntry(timeStr, agent, text) {
+      const panel = document.getElementById('activityLog');
+      if (!panel) return;
+      const div = document.createElement('div');
+      div.className = `log-item ${agent.colorClass}`;
+      div.innerText = `[${timeStr}] 👤 ${agent.name}: ${text}`;
+      panel.appendChild(div);
+
+      // Unumdorlikni saqlash uchun loglarni 50 ta bilan cheklaymiz
+      while (panel.children.length > 51) {
+        panel.removeChild(panel.children[1]);
+      }
+
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    function clearActivityLogs() {
+      const panel = document.getElementById('activityLog');
+      if (panel) {
+        panel.innerHTML = `<div style="color: #06b6d4; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span>⏱️ SONIYABAY XODIMLAR HARAKATI JADVALI (24/7 TRACKER):</span>
+          <button onclick="clearActivityLogs()" style="background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;">[Tozalash]</button>
+        </div>`;
+      }
+    }
+
+    /* CANVAS VIZUALIZATSIYA (60 FPS Game Loop) */
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const now = getTashkentDate();
+      const hour = now.getHours();
+      let isNight = (hour >= 20 || hour < 8);
+
+      updateAgentPositions();
+      drawOfficeEnvironment(isNight);
+      drawFurnitureAndItems();
+      drawAgentsDynamic(isNight);
+      
+      if (isNight) {
+        // Tungi rejim effekti (Soya qatlami)
+        ctx.save();
+        ctx.fillStyle = 'rgba(7, 10, 18, 0.65)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+
+      drawCCTVOverlay(now);
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function drawOfficeEnvironment(isNight) {
+      const w = canvas.width, h = canvas.height;
+      ctx.fillStyle = isNight ? '#0f172a' : '#e2e8f0';
+      ctx.fillRect(0, 0, w, h * 0.38);
+
+      ctx.fillStyle = isNight ? '#090d16' : '#cbd5e1';
+      ctx.fillRect(0, h * 0.38, w, h * 0.62);
+
+      ctx.strokeStyle = isNight ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.06)';
+      ctx.lineWidth = 1;
+      let tileSize = 60;
+      for (let x = 0; x < w; x += tileSize) {
+        ctx.beginPath(); ctx.moveTo(x, h * 0.38); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = h * 0.38; y < h; y += tileSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+    }
+
+    function drawFurnitureAndItems() {
+      const w = canvas.width, h = canvas.height;
+
+      // Jaluzi
+      ctx.fillStyle = '#94a3b8';
+      for (let i = 20; i < h * 0.35; i += 12) {
+        ctx.fillRect(5, i, 18, 3);
+      }
+
+      // Printer
+      const prntX = w * 0.21, prntY = h * 0.18;
+      ctx.fillStyle = '#a16207';
+      ctx.fillRect(prntX - 45, prntY, 90, 45);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(prntX - 25, prntY - 20, 50, 22);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(prntX - 15, prntY - 24, 30, 6);
+
+      // Doska
+      const bdX = w * 0.50, bdY = h * 0.16;
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 4;
+      ctx.fillRect(bdX - 110, bdY - 35, 220, 70);
+      ctx.strokeRect(bdX - 110, bdY - 35, 220, 70);
+
+      ctx.save();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 10px Inter';
+      ctx.textAlign = 'center';
+      ctx.fillText("AGENT 1: HISOBOT VA BAZA SXEMASI", bdX, bdY - 20);
+      ctx.restore();
+
+      ctx.fillStyle = '#2563eb'; ctx.fillRect(bdX - 85, bdY - 10, 28, 18);
+      ctx.fillStyle = '#10b981'; ctx.beginPath(); ctx.arc(bdX - 25, bdY - 1, 10, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#8b5cf6'; ctx.fillRect(bdX + 25, bdY - 10, 28, 18);
+      ctx.fillStyle = '#06b6d4'; ctx.beginPath(); ctx.arc(bdX + 80, bdY - 1, 10, 0, Math.PI*2); ctx.fill();
+
+      // Kuller
+      const klX = w * 0.76, klY = h * 0.22;
+      ctx.fillStyle = '#f1f5f9'; ctx.fillRect(klX - 15, klY, 30, 40);
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(klX, klY - 15, 14, 0, Math.PI * 2); ctx.fill();
+
+      // Javon
+      const shX = w * 0.90, shY = h * 0.16;
+      ctx.fillStyle = '#451a03'; ctx.fillRect(shX - 25, shY, 50, 75);
+      ctx.fillStyle = '#f8fafc'; ctx.fillRect(shX - 18, shY + 10, 36, 12);
+
+      // Stollar
+      const deskY = h * 0.52;
+      const deskW = w * 0.24, deskH = 65;
+      const deskPositions = [w * 0.23, w * 0.50, w * 0.77];
+
+      deskPositions.forEach((x) => {
+        ctx.fillStyle = '#d97706';
+        ctx.beginPath(); ctx.roundRect(x - deskW/2, deskY, deskW, deskH, 6); ctx.fill();
+
+        ctx.fillStyle = '#1e40af';
+        ctx.fillRect(x - deskW/2 - 4, deskY - 15, 8, deskH + 20);
+        ctx.fillRect(x + deskW/2 - 4, deskY - 15, 8, deskH + 20);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x - 30, deskY - 25, 60, 32);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(x - 27, deskY - 23, 54, 26);
+
+        ctx.fillStyle = '#334155'; ctx.fillRect(x - 18, deskY + 18, 36, 10);
+        ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(x + 28, deskY + 22, 4, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath(); ctx.arc(x, deskY + 55, 18, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+
+    function drawAgentsDynamic(isNight) {
+      agentsList.forEach((ag) => {
+        ctx.save();
+        ctx.translate(ag.currX, ag.currY);
+
+        if (ag.state === "SLEEP") {
+          // Uyqu rejimi vizualizatsiyasi
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath(); ctx.ellipse(0, 10, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = '#475569';
+          ctx.beginPath(); ctx.roundRect(-16, -10, 32, 24, 6); ctx.fill();
+
+          ctx.fillStyle = '#334155';
+          ctx.beginPath(); ctx.arc(0, -10, 11, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 12px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText("Zzz...", 12, -25);
+
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = 'bold 10px Inter';
+          ctx.fillText(ag.name, 0, -38);
+        } else if (!ag.isWalking && ag.state === "WORKING") {
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath(); ctx.ellipse(0, 10, 16, 6, 0, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = ag.shirt;
+          ctx.beginPath(); ctx.roundRect(-16, -10, 32, 24, 6); ctx.fill();
+
+          ctx.fillStyle = '#1e1b4b';
+          ctx.beginPath(); ctx.arc(0, -16, 11, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = '#fca5a5';
+          ctx.fillRect(-2, -8, 4, 4);
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 10px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText(ag.name, 0, -30);
+        } else {
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.beginPath(); ctx.ellipse(0, 15, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = ag.shirt;
+          ctx.beginPath(); ctx.roundRect(-10, -10, 20, 22, 5); ctx.fill();
+
+          ctx.fillStyle = '#1e1b4b';
+          ctx.beginPath(); ctx.arc(0, -18, 9, 0, Math.PI * 2); ctx.fill();
+
+          ctx.fillStyle = '#fca5a5';
+          ctx.beginPath(); ctx.arc(0, -16, 6, 0, Math.PI); ctx.fill();
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = 'bold 10px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText(ag.name, 0, -32);
+        }
+
+        ctx.restore();
+      });
+    }
+
+    function drawCCTVOverlay(dateObj) {
+      const w = canvas.width;
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText("● REC [LIVE CAM-01: OFFICE AGENTS TRACKER]", 15, 22);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(`TOSHKENT VAQTI: ${getTashkentTimeString()}`, w - 230, 22);
+      ctx.restore();
+    }
+
+    /* REAL-TIME HABAR VA PROFIL TIZIMINI SINXRONLASH */
+    channel.onmessage = (e) => {
+      if (e.data.type === 'CLIENT_MSG' || e.data.type === 'PROFILE_UPDATE') {
+        loadClientList();
+        if (e.data.client === selectedClient) {
+          renderMessages();
+        }
+      }
+    };
+
+    window.addEventListener('storage', () => {
+      loadClientList();
+      renderMessages();
+    });
+  </script>
+</body>
+</html>

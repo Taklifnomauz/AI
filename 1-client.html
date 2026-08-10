@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mijoz Portali - Mirabbos AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0c0a1d;
+      --card-bg: rgba(23, 20, 48, 0.65);
+      --card-border: rgba(255, 255, 255, 0.12);
+      
+      --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%);
+      --btn-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      --btn-hover-gradient: linear-gradient(135deg, #c084fc 0%, #818cf8 100%);
+      --client-msg-gradient: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+      
+      --accent-purple: #a855f7;
+      --accent-pink: #ec4899;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
+
+    body {
+      background-color: var(--bg-main);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.22) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(236, 72, 153, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      overflow-x: hidden;
+    }
+
+    /* AUTH CARD */
+    .auth-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      padding: 40px 36px;
+      border-radius: 32px;
+      width: 100%;
+      max-width: 430px;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7),
+                  0 0 40px rgba(168, 85, 247, 0.15);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .auth-title { 
+      text-align: center; 
+      font-size: 28px; 
+      font-weight: 800; 
+      background: var(--primary-gradient);
+      -webkit-background-clip: text; 
+      -webkit-text-fill-color: transparent; 
+      margin-bottom: 8px; 
+    }
+    .auth-subtitle { text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+
+    .input-group { margin-bottom: 18px; }
+    .input-group label { display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px; letter-spacing: 0.3px; text-transform: uppercase; }
+
+    input[type="text"], input[type="password"], input[type="date"] {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(12, 10, 29, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    input:focus { 
+      border-color: var(--accent-purple); 
+      box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.25);
+      background: rgba(12, 10, 29, 0.9);
+    }
+
+    .auth-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 13px; color: var(--text-muted); }
+    .checkbox-container { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+    .checkbox-container input { width: 18px; height: 18px; accent-color: var(--accent-pink); cursor: pointer; border-radius: 6px; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--btn-gradient);
+      color: white;
+      font-size: 14px;
+      box-shadow: 0 8px 25px rgba(168, 85, 247, 0.35);
+      transition: all 0.25s ease;
+    }
+    .btn-primary:hover { 
+      background: var(--btn-hover-gradient); 
+      transform: translateY(-2px); 
+      box-shadow: 0 12px 30px rgba(168, 85, 247, 0.5); 
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* CLIENT DASHBOARD */
+    .client-dashboard {
+      display: none;
+      width: 100%;
+      max-width: 920px;
+      height: 88vh;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 32px;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8),
+                  0 0 50px rgba(139, 92, 246, 0.12);
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .header-bar {
+      padding: 18px 28px;
+      background: rgba(12, 10, 29, 0.85);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* PROFIL TRIGGER (AVATAR) */
+    .user-profile-trigger {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 16px 6px 6px;
+      border-radius: 22px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s ease;
+    }
+
+    .user-profile-trigger:hover {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* AVATAR STYLE */
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ec4899, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: white;
+      box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      overflow: hidden;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .header-title { font-size: 16px; font-weight: 700; color: #fff; }
+    .header-sub { font-size: 11px; color: var(--accent-emerald); display: flex; align-items: center; gap: 6px; margin-top: 2px; font-weight: 600; }
+    .status-dot { width: 8px; height: 8px; background: var(--accent-emerald); border-radius: 50%; box-shadow: 0 0 10px var(--accent-emerald); }
+
+    .header-actions { display: flex; gap: 10px; }
+    .icon-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      color: var(--text-muted);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .icon-btn:hover { background: rgba(239, 68, 68, 0.18); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+
+    /* CHAT MSG AREA */
+    .msg-area {
+      flex: 1;
+      padding: 28px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .msg-area::-webkit-scrollbar { width: 6px; }
+    .msg-area::-webkit-scrollbar-track { background: transparent; }
+    .msg-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+    .msg-bubble {
+      max-width: 68%;
+      padding: 15px 20px;
+      border-radius: 22px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+      position: relative;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .msg-client {
+      align-self: flex-end;
+      background: var(--client-msg-gradient);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 8px 22px rgba(124, 58, 237, 0.35);
+    }
+
+    .msg-server {
+      align-self: flex-start;
+      background: rgba(30, 27, 61, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .msg-info { font-size: 11px; opacity: 0.8; margin-bottom: 6px; font-weight: 700; display: flex; justify-content: space-between; gap: 12px; }
+
+    .input-bar {
+      padding: 20px 28px;
+      background: rgba(12, 10, 29, 0.85);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      gap: 14px;
+    }
+
+    .input-bar input { margin-bottom: 0; flex: 1; border-radius: 18px; background: rgba(23, 20, 48, 0.9); }
+    .input-bar button { width: auto; padding: 0 36px; border-radius: 18px; }
+
+    /* MODAL (PROFIL & SOZLAMALAR) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(6, 4, 15, 0.8);
+      backdrop-filter: blur(12px);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .modal-content {
+      background: #14112a;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      padding: 36px;
+      border-radius: 28px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(168, 85, 247, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .modal-title { font-size: 22px; font-weight: 800; color: #fff; }
+    .modal-subtitle { font-size: 12px; color: var(--accent-pink); font-weight: 600; }
+
+    /* RASM YUKLASH MAYDONI */
+    .avatar-upload-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      padding: 12px 16px;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+
+    .file-select-btn {
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #e9d5ff;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .file-select-btn:hover { background: rgba(168, 85, 247, 0.35); }
+
+    .modal-btns { display: flex; gap: 12px; margin-top: 26px; }
+    .btn-secondary { background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); padding: 14px; border-radius: 16px; color: white; width: 100%; cursor: pointer; font-weight: 700; font-size: 14px; transition: 0.2s; }
+    .btn-secondary:hover { background: rgba(255,255,255,0.14); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- KIRISH SHAKLI -->
+  <div class="auth-card" id="authScreen">
+    <div class="auth-title">Mirabbos AI</div>
+    <div class="auth-subtitle">Mijoz portaliga xush kelibsiz</div>
+    
+    <div class="input-group">
+      <label>Login / Foydalanuvchi nomi</label>
+      <input type="text" id="usernameInput" placeholder="Masalan: abbos_dev">
+    </div>
+    
+    <div class="input-group">
+      <label>Parol</label>
+      <input type="password" id="passwordInput" placeholder="••••••••">
+    </div>
+
+    <div class="auth-options">
+      <label class="checkbox-container">
+        <input type="checkbox" id="rememberMe">
+        <span>Eslab qolish</span>
+      </label>
+    </div>
+
+    <button class="btn-primary" onclick="loginOrRegister()">KIRISH / RO'YXATDAN O'TISH</button>
+  </div>
+
+  <!-- CHAT PANELI -->
+  <div class="client-dashboard" id="clientScreen">
+    <div class="header-bar">
+      <!-- PROFILGA KIRISH TUGMASI (AVATAR) -->
+      <div class="user-profile-trigger" onclick="openProfile()" title="Profil va Sozlamalarni ochish">
+        <div class="avatar" id="userAvatar">A</div>
+        <div>
+          <div class="header-title" id="clientUserTitle">Mijoz</div>
+          <div class="header-sub"><span class="status-dot"></span> Onlayn va ulangan</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="icon-btn" onclick="logout()">🚪 Chiqish</button>
+      </div>
+    </div>
+
+    <div class="msg-area" id="clientMsgArea"></div>
+
+    <div class="input-bar">
+      <input type="text" id="clientInput" placeholder="Xabaringizni yozing..." onkeypress="handleKey(event)">
+      <button class="btn-primary" onclick="sendClientMsg()">Yuborish</button>
+    </div>
+  </div>
+
+  <!-- PROFIL VA SOZLAMALAR MODAL OYNASI -->
+  <div class="modal" id="profileModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="avatar" id="modalAvatar" style="width: 54px; height: 54px; font-size: 22px;">A</div>
+        <div>
+          <div class="modal-title">Mening Profilim</div>
+          <div class="modal-subtitle">✨ Shaxsiy ma'lumotlar va sozlamalar</div>
+        </div>
+      </div>
+
+      <!-- RASM YUKLASH SEKSIYASI -->
+      <div class="avatar-upload-wrapper">
+        <button class="file-select-btn" onclick="document.getElementById('avatarFileInput').click()">🖼️ Rasm tanlash</button>
+        <span id="fileNameDisplay" style="font-size: 12px; color: var(--text-muted);">Rasm tanlanmadi</span>
+        <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+      </div>
+      
+      <div class="input-group">
+        <label>Login</label>
+        <input type="text" id="profileUsernameInput" placeholder="Login kiriting">
+      </div>
+      
+      <div class="input-group">
+        <label>Parol</label>
+        <input type="password" id="profilePasswordInput" placeholder="Yangi parol">
+      </div>
+
+      <div class="input-group">
+        <label>Tug'ilgan kuningiz (Yil, Oy, Kun)</label>
+        <input type="date" id="profileBirthdateInput">
+      </div>
+
+      <div class="input-group">
+        <label>Qayerdansiz? (Yashash joyingiz / Shahar)</label>
+        <input type="text" id="profileLocationInput" placeholder="Masalan: Tashkent, Uzbekistan">
+      </div>
+
+      <div class="modal-btns">
+        <button class="btn-primary" onclick="saveProfile()">Saqlash</button>
+        <button class="btn-secondary" onclick="closeProfile()">Yopish</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let username = '';
+    let tempAvatarBase64 = null; // Vaqtincha yuklangan rasm kodi
+    const channel = new BroadcastChannel('multi_office_system');
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedUser = JSON.parse(localStorage.getItem('remembered_client') || 'null');
+      if (savedUser) {
+        document.getElementById('usernameInput').value = savedUser.username;
+        document.getElementById('passwordInput').value = savedUser.password;
+        document.getElementById('rememberMe').checked = true;
+      }
+    });
+
+    function loginOrRegister() {
+      const u = document.getElementById('usernameInput').value.trim().toLowerCase();
+      const p = document.getElementById('passwordInput').value.trim();
+      const remember = document.getElementById('rememberMe').checked;
+
+      if (!u || !p) {
+        alert("Iltimos, login va parolni to'liq kiriting!");
+        return;
+      }
+
+      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
+
+      if (usersDb[u]) {
+        if (usersDb[u].password !== p) {
+          alert("Noto'g'ri parol!");
+          return;
+        }
+      } else {
+        usersDb[u] = { 
+          password: p, 
+          birthdate: '', 
+          location: '',
+          avatar: '',
+          createdAt: new Date().toISOString() 
+        };
+        localStorage.setItem('users_db', JSON.stringify(usersDb));
+      }
+
+      if (remember) {
+        localStorage.setItem('remembered_client', JSON.stringify({ username: u, password: p }));
+      } else {
+        localStorage.removeItem('remembered_client');
+      }
+
+      username = u;
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('clientScreen').style.display = 'flex';
+      updateUIHeader();
+
+      registerActiveClient(username);
+      renderMessages();
+    }
+
+    function updateUIHeader() {
+      document.getElementById('clientUserTitle').innerText = username;
+      
+      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
+      const userData = usersDb[username] || {};
+      const avatarSrc = userData.avatar;
+
+      setAvatarElement('userAvatar', avatarSrc, username);
+      setAvatarElement('modalAvatar', avatarSrc, username);
+    }
+
+    /* AVATARNI RENDER QILISH FUNKSIYASI */
+    function setAvatarElement(elemId, avatarData, name) {
+      const elem = document.getElementById(elemId);
+      if (avatarData) {
+        elem.innerHTML = `<img src="${avatarData}" alt="Avatar">`;
+      } else {
+        elem.innerHTML = name.charAt(0).toUpperCase();
+      }
+    }
+
+    /* RASM YUKLANGANDA BASE64 GA O'GIRISH */
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) { // 2MB cheklov
+        alert("Rasm hajmi juda katta! 2MB dan kichik rasm tanlang.");
+        return;
+      }
+
+      document.getElementById('fileNameDisplay').innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        tempAvatarBase64 = evt.target.result;
+        // Profil oynasida rasmni ko'rsatib turish
+        document.getElementById('modalAvatar').innerHTML = `<img src="${tempAvatarBase64}" alt="Preview">`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function registerActiveClient(user) {
+      let clients = JSON.parse(localStorage.getItem('active_clients_list') || '[]');
+      if (!clients.includes(user)) {
+        clients.push(user);
+        localStorage.setItem('active_clients_list', JSON.stringify(clients));
+      }
+    }
+
+    function sendClientMsg() {
+      const input = document.getElementById('clientInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const msg = {
+        id: Date.now(),
+        sender: username,
+        text: text,
+        isAdmin: false,
+        time: new Date().toLocaleTimeString().slice(0, 5)
+      };
+
+      let history = JSON.parse(localStorage.getItem(`chat_${username}`) || '[]');
+      history.push(msg);
+      localStorage.setItem(`chat_${username}`, JSON.stringify(history));
+
+      channel.postMessage({ type: 'CLIENT_MSG', client: username, data: msg });
+
+      input.value = '';
+      renderMessages();
+    }
+
+    function renderMessages() {
+      if (!username) return;
+      const history = JSON.parse(localStorage.getItem(`chat_${username}`) || '[]');
+      const container = document.getElementById('clientMsgArea');
+      container.innerHTML = '';
+
+      history.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = `msg-bubble ${msg.isAdmin ? 'msg-server' : 'msg-client'}`;
+        div.innerHTML = `
+          <div class="msg-info"><span>${msg.sender}</span> <span>${msg.time}</span></div>
+          <div>${formatMarkdown(escapeHtml(msg.text))}</div>
+        `;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function openProfile() {
+      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
+      const userData = usersDb[username] || {};
+
+      document.getElementById('profileUsernameInput').value = username;
+      document.getElementById('profilePasswordInput').value = userData.password || '';
+      document.getElementById('profileBirthdateInput').value = userData.birthdate || '';
+      document.getElementById('profileLocationInput').value = userData.location || '';
+      document.getElementById('fileNameDisplay').innerText = userData.avatar ? "Rasm yuklangan" : "Rasm tanlanmadi";
+
+      tempAvatarBase64 = userData.avatar || null;
+      setAvatarElement('modalAvatar', tempAvatarBase64, username);
+
+      document.getElementById('profileModal').style.display = 'flex';
+    }
+
+    function closeProfile() {
+      document.getElementById('profileModal').style.display = 'none';
+      tempAvatarBase64 = null;
+    }
+
+    function saveProfile() {
+      const newU = document.getElementById('profileUsernameInput').value.trim().toLowerCase();
+      const newP = document.getElementById('profilePasswordInput').value.trim();
+      const newBirth = document.getElementById('profileBirthdateInput').value;
+      const newLoc = document.getElementById('profileLocationInput').value.trim();
+
+      if (!newU || !newP) {
+        alert("Login va parolni bo'sh qoldirish mumkin emas!");
+        return;
+      }
+
+      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
+
+      if (newU !== username && usersDb[newU]) {
+        alert("Ushbu login band, iltimos boshqasini tanlang!");
+        return;
+      }
+
+      const oldData = usersDb[username] || {};
+      delete usersDb[username];
+
+      usersDb[newU] = {
+        ...oldData,
+        password: newP,
+        birthdate: newBirth,
+        location: newLoc,
+        avatar: tempAvatarBase64 !== null ? tempAvatarBase64 : (oldData.avatar || ''),
+        updatedAt: new Date().toISOString()
+      };
+
+      if (newU !== username) {
+        const history = localStorage.getItem(`chat_${username}`);
+        if (history) {
+          localStorage.setItem(`chat_${newU}`, history);
+          localStorage.removeItem(`chat_${username}`);
+        }
+
+        let clients = JSON.parse(localStorage.getItem('active_clients_list') || '[]');
+        clients = clients.map(c => c === username ? newU : c);
+        localStorage.setItem('active_clients_list', JSON.stringify(clients));
+
+        username = newU;
+      }
+
+      localStorage.setItem('users_db', JSON.stringify(usersDb));
+
+      if (localStorage.getItem('remembered_client')) {
+        localStorage.setItem('remembered_client', JSON.stringify({ username: username, password: newP }));
+      }
+
+      updateUIHeader();
+      alert("Profil ma'lumotlaringiz va rasmingiz saqlandi!");
+      closeProfile();
+    }
+
+    function logout() {
+      username = '';
+      document.getElementById('clientScreen').style.display = 'none';
+      document.getElementById('authScreen').style.display = 'block';
+    }
+
+    channel.onmessage = (e) => {
+      if (e.data.type === 'SERVER_MSG' && e.data.client === username) {
+        renderMessages();
+      }
+    };
+
+    function handleKey(e) { if (e.key === 'Enter') sendClientMsg(); }
+    
+    function escapeHtml(str) {
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    function formatMarkdown(str) {
+      return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }
+  </script>
+</body>
+</html>
