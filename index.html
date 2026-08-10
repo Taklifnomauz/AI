@@ -167,7 +167,9 @@
     .canvas-container {
       flex: 1.5; background: #000; border: 1px solid var(--card-border); border-radius: 16px; position: relative; overflow: hidden; display: flex; flex-direction: column;
     }
-    canvas { width: 100%; flex: 1; display: block; }
+    /* Canvas elementining CSS orqali buzilib ketishini oldini olish */
+    canvas { width: 100%; flex: 1; display: block; object-fit: contain; }
+
     .activity-log-panel {
       height: 180px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--card-border); padding: 10px 15px; overflow-y: auto; font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 4px;
     }
@@ -258,7 +260,7 @@
 
   <!-- ADMIN / SERVER DASHBOARD PANELI -->
   <div class="admin-dashboard" id="adminScreen">
-    <div class="canvas-container">
+    <div class="canvas-container" id="canvasContainer">
       <canvas id="officeCanvas"></canvas>
       <div class="activity-log-panel" id="activityLog">
         <div style="color: #06b6d4; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between;">
@@ -320,7 +322,6 @@
     let selectedClient = null;
     let tempAvatarBase64 = null;
 
-    // Server/Admin logini va paroli
     const ADMIN_USER = "Qamir";
     const ADMIN_PASS = "Al-qamir";
 
@@ -345,7 +346,6 @@
         return;
       }
 
-      // Adminni tekshirish
       if (u === ADMIN_USER && p === ADMIN_PASS) {
         username = ADMIN_USER;
         if (remember) localStorage.setItem('remembered_client', JSON.stringify({ username: u, password: p }));
@@ -357,7 +357,6 @@
         return;
       }
 
-      // Mijoz sifatida tekshirish
       const clientKey = u.toLowerCase();
       let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
       if (usersDb[clientKey]) {
@@ -382,7 +381,6 @@
       renderClientMessages();
     }
 
-    // --- MIJOZ FUNKSIYALARI ---
     function updateClientHeader() {
       document.getElementById('clientUserTitle').innerText = username;
       let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
@@ -474,7 +472,6 @@
       document.getElementById('profileModal').style.display = 'none';
     }
 
-    // --- ADMIN / SERVER FUNKSIYALARI ---
     function initAdminDashboard() {
       renderClientList();
       startCanvasSimulation();
@@ -537,12 +534,19 @@
       renderAdminMessages();
     }
 
-    // CCTV & Canvas Simulation
+    // CCTV & Canvas Simulation (To'g'rilangan proporsiya bilan)
     function startCanvasSimulation() {
       const canvas = document.getElementById('officeCanvas');
+      const container = document.getElementById('canvasContainer');
       const ctx = canvas.getContext('2d');
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = 400;
+
+      function resizeCanvas() {
+        canvas.width = container.clientWidth;
+        // Log paneliga joy qoldirib, qolgan balandlikni to'g'ri oladi
+        canvas.height = container.clientHeight - document.getElementById('activityLog').clientHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
       let agents = [
         { x: 100, y: 100, vx: 1.5, vy: 1, name: 'Agent 1', color: '#60a5fa' },
@@ -577,7 +581,7 @@
 
           ctx.fillStyle = a.color;
           ctx.beginPath(); ctx.arc(a.x, a.y, 8, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#fff'; ctx.font = '10px Inter'; ctx.fillText(a.name, a.x - 15, a.y - 12);
+          ctx.fillStyle = '#fff'; ctx.font = '11px Inter'; ctx.fillText(a.name, a.x - 15, a.y - 12);
         });
         requestAnimationFrame(loop);
       }
