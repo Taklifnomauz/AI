@@ -1,609 +1,364 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mirabbos AI - Xavfsiz Tizim</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-main: #0c0a1d;
-      --card-bg: rgba(23, 20, 48, 0.65);
-      --card-border: rgba(255, 255, 255, 0.12);
-      --primary-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%);
-      --btn-gradient: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
-      --btn-hover-gradient: linear-gradient(135deg, #c084fc 0%, #818cf8 100%);
-      --client-msg-gradient: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
-      --accent-purple: #a855f7;
-      --accent-pink: #ec4899;
-      --accent-cyan: #06b6d4;
-      --accent-emerald: #10b981;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Tracker 24/7</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0b0b1a;
+            --card-bg: #141429;
+            --border: #2a2a4a;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-pink: #db2777;
+            --glow-blue: rgba(59, 130, 246, 0.15);
+        }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
 
-    body {
-      background-color: var(--bg-main);
-      background-image: 
-        radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.22) 0%, transparent 45%),
-        radial-gradient(circle at 85% 80%, rgba(236, 72, 153, 0.18) 0%, transparent 45%),
-        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 50%);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 15px;
-      overflow-x: hidden;
-    }
+        /* LOGIN SCREEN */
+        .auth-card {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 0 50px var(--glow-blue);
+        }
+        .auth-title { font-size: 24px; font-weight: 700; text-align: center; color: #fff; margin-bottom: 8px; letter-spacing: 1px; }
+        .auth-subtitle { text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 14px; }
+        
+        .input-group { margin-bottom: 16px; }
+        input[type="text"], input[type="password"] {
+            width: 100%; padding: 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 12px; color: #fff; outline: none; transition: 0.3s;
+        }
+        input:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2); }
 
-    /* GLOBAL AUTH SCREEN */
-    .auth-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(24px);
-      padding: 40px 36px;
-      border-radius: 32px;
-      width: 100%;
-      max-width: 430px;
-      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(168, 85, 247, 0.15);
-    }
+        .btn-primary {
+            width: 100%; padding: 14px; background: var(--accent-purple); border: none; border-radius: 12px; color: #fff; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px;
+        }
+        .btn-primary:hover { background: #7c3aed; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+        .error-msg { color: #ef4444; font-size: 12px; text-align: center; margin-top: 10px; display: none; }
 
-    .auth-title { text-align: center; font-size: 28px; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
-    .auth-subtitle { text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+        /* DASHBOARD MAIN */
+        .dashboard {
+            display: none; width: 100%; height: 100vh; padding: 15px; gap: 15px; background: var(--bg-dark);
+            grid-template-columns: 1fr 350px; grid-template-rows: 60px 1fr; 
+        }
+        
+        /* HEADER */
+        .header {
+            grid-column: 1 / -1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
+            padding: 0 24px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { font-weight: 700; font-size: 20px; color: #fff; display: flex; align-items: center; gap: 10px; }
+        .logo span { color: var(--accent-blue); }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .user-info button { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; color: var(--text-muted); cursor: pointer; }
+        .user-info button:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
-    .input-group { margin-bottom: 18px; }
-    .input-group label { display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 8px; text-transform: uppercase; }
+        /* TRACKER MAP AREA */
+        .tracker-container {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; position: relative; overflow: hidden; display: flex; flex-direction: column;
+        }
+        #trackerCanvas { width: 100%; height: 100%; background: #0a0a1a; display: block; }
+        .motivation-banner {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(16, 185, 129, 0.9); padding: 8px 16px; border-radius: 20px; font-weight: 700; color: #fff; display: none; animation: popIn 0.5s ease;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+        @keyframes popIn { from { transform: translateX(-50%) scale(0.8); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
 
-    input[type="text"], input[type="password"], input[type="date"] {
-      width: 100%;
-      padding: 14px 18px;
-      background: rgba(12, 10, 29, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 16px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
-      transition: all 0.25s ease;
-    }
+        /* LOG PANEL */
+        .log-panel {
+            height: 220px; background: rgba(0,0,0,0.6); border-top: 1px solid var(--border); padding: 15px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+        }
+        .log-item { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; gap: 10px; }
+        .log-time { color: var(--text-muted); }
+        .log-name { color: var(--accent-blue); font-weight: 700; }
+        .log-msg { color: #e2e8f0; }
 
-    input:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.25); background: rgba(12, 10, 29, 0.9); }
+        /* SIDEBAR (CHAT) */
+        .sidebar {
+            background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .client-list { height: 30%; border-bottom: 1px solid var(--border); overflow-y: auto; padding: 10px; }
+        .client-item {
+            padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s;
+        }
+        .client-item:hover, .client-item.active { background: rgba(59, 130, 246, 0.15); border-left: 3px solid var(--accent-blue); }
+        .avatar-small { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-purple); display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 12px; }
 
-    .btn-primary {
-      width: 100%;
-      padding: 15px;
-      border: none;
-      border-radius: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      background: var(--btn-gradient);
-      color: white;
-      font-size: 14px;
-      box-shadow: 0 8px 25px rgba(168, 85, 247, 0.35);
-      transition: all 0.25s ease;
-    }
-    .btn-primary:hover { background: var(--btn-hover-gradient); transform: translateY(-2px); }
+        .chat-area { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
+        .messages { flex: 1; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
+        .msg-client { align-self: flex-end; background: var(--accent-blue); color: #fff; }
+        .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.08); color: #e2e8f0; border: 1px solid var(--border); }
 
-    .error-msg { color: #ef4444; font-size: 12px; margin-top: 10px; text-align: center; display: none; }
-
-    /* CLIENT DASHBOARD */
-    .client-dashboard {
-      display: none;
-      width: 100%;
-      max-width: 920px;
-      height: 88vh;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      backdrop-filter: blur(24px);
-      border-radius: 32px;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
-    }
-
-    .header-bar {
-      padding: 18px 28px;
-      background: rgba(12, 10, 29, 0.85);
-      border-bottom: 1px solid var(--card-border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .user-profile-trigger {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 6px 16px 6px 6px;
-      border-radius: 22px;
-      cursor: pointer;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: linear-gradient(135deg, #ec4899, #8b5cf6);
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 18px; color: white;
-      border: 2px solid rgba(255, 255, 255, 0.25); overflow: hidden;
-    }
-    .avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-    .header-title { font-size: 16px; font-weight: 700; color: #fff; }
-    .header-sub { font-size: 11px; color: var(--accent-emerald); display: flex; align-items: center; gap: 6px; font-weight: 600; }
-    .status-dot { width: 8px; height: 8px; background: var(--accent-emerald); border-radius: 50%; }
-
-    .icon-btn {
-      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
-      border-radius: 14px; color: var(--text-muted); padding: 10px 18px;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-    }
-    .icon-btn:hover { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
-
-    .msg-area {
-      flex: 1; padding: 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
-    }
-
-    .msg-bubble {
-      max-width: 68%; padding: 15px 20px; border-radius: 22px; font-size: 14px; line-height: 1.6; word-break: break-word;
-    }
-    .msg-client { align-self: flex-end; background: var(--client-msg-gradient); color: #fff; border-bottom-right-radius: 4px; }
-    .msg-server { align-self: flex-start; background: rgba(30, 27, 61, 0.85); border: 1px solid rgba(255, 255, 255, 0.12); color: #f1f5f9; border-bottom-left-radius: 4px; }
-    .msg-info { font-size: 11px; opacity: 0.8; margin-bottom: 6px; font-weight: 700; display: flex; justify-content: space-between; }
-
-    .input-bar {
-      padding: 20px 28px; background: rgba(12, 10, 29, 0.85); border-top: 1px solid var(--card-border); display: flex; gap: 14px;
-    }
-    .input-bar input { flex: 1; border-radius: 18px; background: rgba(23, 20, 48, 0.9); }
-    .input-bar button { width: auto; padding: 0 36px; border-radius: 18px; }
-
-    /* ADMIN DASHBOARD */
-    .admin-dashboard {
-      display: none; width: 100%; max-width: 1800px; gap: 15px; height: 94vh;
-    }
-    .canvas-container {
-      flex: 1.5; background: #000; border: 1px solid var(--card-border); border-radius: 16px; position: relative; overflow: hidden; display: flex; flex-direction: column;
-    }
-    /* Canvas elementining CSS orqali buzilib ketishini oldini olish */
-    canvas { width: 100%; flex: 1; display: block; object-fit: contain; }
-
-    .activity-log-panel {
-      height: 180px; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--card-border); padding: 10px 15px; overflow-y: auto; font-family: monospace; font-size: 11px; display: flex; flex-direction: column; gap: 4px;
-    }
-    .log-item { padding: 3px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.03); }
-
-    .client-list-panel {
-      width: 310px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;
-    }
-    .panel-header {
-      padding: 14px 16px; background: rgba(15, 23, 42, 0.9); border-bottom: 1px solid var(--card-border); font-weight: 700; color: var(--accent-cyan); font-size: 13px; display: flex; justify-content: space-between; align-items: center;
-    }
-    .client-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
-    .client-item {
-      padding: 10px 14px; border-bottom: 1px solid var(--card-border); cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 12px; transition: 0.2s;
-    }
-    .client-item:hover, .client-item.active { background: rgba(37, 99, 235, 0.18); border-left: 4px solid var(--accent-cyan); }
-    .client-avatar-mini {
-      width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; overflow: hidden; flex-shrink: 0;
-    }
-    .client-avatar-mini img { width: 100%; height: 100%; object-fit: cover; }
-
-    .chat-panel {
-      flex: 1; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;
-    }
-
-    /* MODAL */
-    .modal {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(6, 4, 15, 0.8); backdrop-filter: blur(12px); align-items: center; justify-content: center; z-index: 100;
-    }
-    .modal-content {
-      background: #14112a; border: 1px solid rgba(168, 85, 247, 0.3); padding: 36px; border-radius: 28px; width: 100%; max-width: 450px;
-    }
-    .modal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-    .modal-title { font-size: 22px; font-weight: 800; color: #fff; }
-    .modal-subtitle { font-size: 12px; color: var(--accent-pink); font-weight: 600; }
-    .avatar-upload-wrapper { display: flex; align-items: center; gap: 16px; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.2); padding: 12px 16px; border-radius: 18px; margin-bottom: 20px; }
-    .file-select-btn { background: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #e9d5ff; padding: 8px 14px; border-radius: 12px; font-size: 12px; cursor: pointer; }
-    .modal-btns { display: flex; gap: 12px; margin-top: 26px; }
-    .btn-secondary { background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); padding: 14px; border-radius: 16px; color: white; width: 100%; cursor: pointer; font-weight: 700; }
-  </style>
+        .chat-input { display: flex; gap: 10px; }
+        .chat-input input { flex: 1; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 8px; color: #fff; outline: none; }
+        .chat-input button { padding: 10px 15px; background: var(--accent-purple); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 700; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    </style>
 </head>
 <body>
 
-  <!-- GLOBAL AUTH SCREEN -->
-  <div class="auth-card" id="authScreen">
-    <div class="auth-title">Mirabbos AI</div>
-    <div class="auth-subtitle">Tizimga kirish portali</div>
-    
-    <div class="input-group">
-      <label>Login / Foydalanuvchi nomi</label>
-      <input type="text" id="usernameInput" placeholder="Loginni kiriting">
-    </div>
-    
-    <div class="input-group">
-      <label>Parol</label>
-      <input type="password" id="passwordInput" placeholder="••••••••">
-    </div>
-
-    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted);">
-      <input type="checkbox" id="rememberMe" style="width: 18px; height: 18px; accent-color: var(--accent-pink); cursor: pointer;">
-      <span>Eslab qolish</span>
-    </div>
-
-    <button class="btn-primary" onclick="globalLogin()">KIRISH</button>
-    <div id="globalLoginError" class="error-msg">Login yoki parol noto'g'ri!</div>
-  </div>
-
-  <!-- MIJOZ CHAT PANELI -->
-  <div class="client-dashboard" id="clientScreen">
-    <div class="header-bar">
-      <div class="user-profile-trigger" onclick="openProfile()">
-        <div class="avatar" id="userAvatar">A</div>
-        <div>
-          <div class="header-title" id="clientUserTitle">Mijoz</div>
-          <div class="header-sub"><span class="status-dot"></span> Onlayn</div>
+    <!-- AUTH -->
+    <div class="auth-card" id="authScreen">
+        <div class="auth-title">AGENT <span style="color:#3b82f6">TRACKER</span></div>
+        <div class="auth-subtitle">24/7 Kuzatuv va Motivatsiya Tizimi</div>
+        <div class="input-group">
+            <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block;">Login</label>
+            <input type="text" id="loginUser" placeholder="Loginni kiriting">
         </div>
-      </div>
-      <div class="header-actions">
-        <button class="icon-btn" onclick="logout()">🚪 Chiqish</button>
-      </div>
-    </div>
-    <div class="msg-area" id="clientMsgArea"></div>
-    <div class="input-bar">
-      <input type="text" id="clientInput" placeholder="Xabaringizni yozing..." onkeypress="if(event.key==='Enter')sendClientMsg()">
-      <button class="btn-primary" onclick="sendClientMsg()">Yuborish</button>
-    </div>
-  </div>
-
-  <!-- ADMIN / SERVER DASHBOARD PANELI -->
-  <div class="admin-dashboard" id="adminScreen">
-    <div class="canvas-container" id="canvasContainer">
-      <canvas id="officeCanvas"></canvas>
-      <div class="activity-log-panel" id="activityLog">
-        <div style="color: #06b6d4; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between;">
-          <span>⏱️ XODIMLAR HARAKATI (24/7 CCTV):</span>
-          <button onclick="document.getElementById('activityLog').innerHTML=''" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:10px;">Tozalash</button>
+        <div class="input-group">
+            <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block;">Parol</label>
+            <input type="password" id="loginPass" placeholder="Parolni kiriting">
         </div>
-      </div>
+        <button class="btn-primary" onclick="login()">Tizimga Kirish</button>
+        <div class="error-msg" id="authError">Login yoki parol noto'g'ri!</div>
+        <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center;">Admin: admin / 123 | Mijoz: user / 123</div>
     </div>
 
-    <div class="client-list-panel">
-      <div class="panel-header">
-        <span>Mijozlar Chatlari</span>
-        <button onclick="logout()" style="background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:10px;">Chiqish</button>
-      </div>
-      <div class="client-items" id="clientListContainer"></div>
-    </div>
-
-    <div class="chat-panel">
-      <div class="header-bar">
-        <div class="header-title" id="activeChatTitle">Chat tanlang</div>
-      </div>
-      <div class="msg-area" id="adminMsgArea"></div>
-      <div class="input-bar" style="background:rgba(15,23,42,0.9); border-top:1px solid rgba(255,255,255,0.1); padding:14px;">
-        <input type="text" id="adminInput" placeholder="Javob yozish..." onkeypress="if(event.key==='Enter')sendAdminMsg()">
-        <button class="btn-primary" style="width:auto; padding:0 20px;" onclick="sendAdminMsg()">Yuborish</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PROFIL MODALI -->
-  <div class="modal" id="profileModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="avatar" id="modalAvatar" style="width: 54px; height: 54px; font-size: 22px;">A</div>
-        <div>
-          <div class="modal-title">Mening Profilim</div>
-          <div class="modal-subtitle">Shaxsiy sozlamalar</div>
+    <!-- DASHBOARD -->
+    <div class="dashboard" id="dashboardScreen">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo"><span>◈</span> AGENT <span>TRACKER</span></div>
+            <div class="user-info">
+                <span id="headerUser" style="font-size:14px; font-weight:600;">Admin</span>
+                <button onclick="logout()">Chiqish</button>
+            </div>
         </div>
-      </div>
-      <div class="avatar-upload-wrapper">
-        <button class="file-select-btn" onclick="document.getElementById('avatarFileInput').click()">🖼️ Rasm tanlash</button>
-        <span id="fileNameDisplay" style="font-size: 12px; color: var(--text-muted);">Rasm tanlanmadi</span>
-        <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-      </div>
-      <div class="input-group"><label>Login</label><input type="text" id="profileUsernameInput"></div>
-      <div class="input-group"><label>Parol</label><input type="password" id="profilePasswordInput"></div>
-      <div class="input-group"><label>Tug'ilgan kun</label><input type="date" id="profileBirthdateInput"></div>
-      <div class="input-group"><label>Shahar</label><input type="text" id="profileLocationInput"></div>
-      <div class="modal-btns">
-        <button class="btn-primary" onclick="saveProfile()">Saqlash</button>
-        <button class="btn-secondary" onclick="document.getElementById('profileModal').style.display='none'">Yopish</button>
-      </div>
+
+        <!-- Main Map -->
+        <div class="tracker-container">
+            <canvas id="trackerCanvas"></canvas>
+            <div class="motivation-banner" id="motivationBanner">🚀 Ajoyib ish!</div>
+            <div class="log-panel" id="logPanel"></div>
+        </div>
+
+        <!-- Sidebar Chat -->
+        <div class="sidebar">
+            <div class="client-list" id="clientList">
+                <div style="color:var(--text-muted); font-size:12px; padding:5px;">Mijozlar ro'yxati</div>
+            </div>
+            <div class="chat-area">
+                <div style="font-size:12px; color:var(--text-muted); padding:5px; border-bottom:1px solid var(--border); margin-bottom:10px;">Xabarlar</div>
+                <div class="messages" id="chatMessages">
+                    <div style="color:var(--text-muted); font-size:13px; text-align:center; margin-top:20px;">Suhbat boshlash uchun mijozni tanlang</div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Xabar yozing...">
+                    <button onclick="sendChat()">Yuborish</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const channel = new BroadcastChannel('multi_office_system');
-    let username = '';
-    let selectedClient = null;
-    let tempAvatarBase64 = null;
+    <script>
+        // -------- LOGIC --------
+        let currentUser = null;
+        let selectedClient = null;
+        let isAdmin = false;
 
-    const ADMIN_USER = "Qamir";
-    const ADMIN_PASS = "Al-qamir";
+        const DB_USERS = { 'admin': { pass: '123', role: 'admin' }, 'user': { pass: '123', role: 'client' } };
+        let chatHistory = JSON.parse(localStorage.getItem('tracker_chats')) || {};
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const saved = JSON.parse(localStorage.getItem('remembered_client') || 'null');
-      if (saved) {
-        document.getElementById('usernameInput').value = saved.username;
-        document.getElementById('passwordInput').value = saved.password;
-        document.getElementById('rememberMe').checked = true;
-      }
-    });
+        function login() {
+            const u = document.getElementById('loginUser').value.trim().toLowerCase();
+            const p = document.getElementById('loginPass').value.trim();
+            const err = document.getElementById('authError');
 
-    function globalLogin() {
-      const u = document.getElementById('usernameInput').value.trim();
-      const p = document.getElementById('passwordInput').value.trim();
-      const remember = document.getElementById('rememberMe').checked;
-      const errEl = document.getElementById('globalLoginError');
-
-      if (!u || !p) {
-        errEl.innerText = "Login va parolni kiriting!";
-        errEl.style.display = 'block';
-        return;
-      }
-
-      if (u === ADMIN_USER && p === ADMIN_PASS) {
-        username = ADMIN_USER;
-        if (remember) localStorage.setItem('remembered_client', JSON.stringify({ username: u, password: p }));
-        else localStorage.removeItem('remembered_client');
-
-        document.getElementById('authScreen').style.display = 'none';
-        document.getElementById('adminScreen').style.display = 'flex';
-        initAdminDashboard();
-        return;
-      }
-
-      const clientKey = u.toLowerCase();
-      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
-      if (usersDb[clientKey]) {
-        if (usersDb[clientKey].password !== p) {
-          errEl.innerText = "Noto'g'ri parol!";
-          errEl.style.display = 'block';
-          return;
+            if(!DB_USERS[u] || DB_USERS[u].pass !== p) { err.style.display = 'block'; return; }
+            err.style.display = 'none';
+            
+            currentUser = u;
+            isAdmin = DB_USERS[u].role === 'admin';
+            document.getElementById('authScreen').style.display = 'none';
+            document.getElementById('dashboardScreen').style.display = 'grid';
+            document.getElementById('headerUser').innerText = isAdmin ? "Admin" : currentUser;
+            
+            if(isAdmin) initAdmin();
+            else initClient();
         }
-      } else {
-        usersDb[clientKey] = { password: p, birthdate: '', location: '', avatar: '', createdAt: new Date().toISOString() };
-        localStorage.setItem('users_db', JSON.stringify(usersDb));
-      }
 
-      if (remember) localStorage.setItem('remembered_client', JSON.stringify({ username: u, password: p }));
-      else localStorage.removeItem('remembered_client');
+        function logout() {
+            currentUser = null; isAdmin = false;
+            document.getElementById('dashboardScreen').style.display = 'none';
+            document.getElementById('authScreen').style.display = 'block';
+        }
 
-      username = clientKey;
-      document.getElementById('authScreen').style.display = 'none';
-      document.getElementById('clientScreen').style.display = 'flex';
-      updateClientHeader();
-      registerActiveClient(username);
-      renderClientMessages();
-    }
+        // -------- ANIMATION & SIMULATION (24/7 TRACKER) --------
+        let agents = [
+            { x: 100, y: 100, vx: 1.2, vy: 0.8, name: 'Agent 1', status: 'Ishda' },
+            { x: 400, y: 300, vx: -0.9, vy: 1.5, name: 'Agent 2', status: 'Kuzatmoqda' },
+            { x: 700, y: 150, vx: 1.5, vy: -1.0, name: 'Agent 3', status: 'Tahmin' }
+        ];
 
-    function updateClientHeader() {
-      document.getElementById('clientUserTitle').innerText = username;
-      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
-      const avatarSrc = (usersDb[username] || {}).avatar;
-      setAvatarEl('userAvatar', avatarSrc, username);
-      setAvatarEl('modalAvatar', avatarSrc, username);
-    }
+        const motivationPhrases = [
+            "🚀 Ajoyib ish! Bugun unumdorlik 95%",
+            "✅ Vazifa bajarildi! Siz eng zo'rsiz!",
+            "💪 Qiyinchiliklarga bardosh bering!",
+            "🌟 Maqsad sari olg'a!",
+            "🏆 Yana bir rekord o'rnatildi!",
+            "🎯 Diqqatni jamlang, muvaffaqiyat yaqin!"
+        ];
 
-    function setAvatarEl(id, data, name) {
-      const el = document.getElementById(id);
-      if (data) el.innerHTML = `<img src="${data}" alt="Avatar">`;
-      else el.innerHTML = name.charAt(0).toUpperCase();
-    }
+        function startTracker() {
+            const canvas = document.getElementById('trackerCanvas');
+            const container = canvas.parentElement;
+            const ctx = canvas.getContext('2d');
 
-    function registerActiveClient(user) {
-      let clients = JSON.parse(localStorage.getItem('active_clients_list') || '[]');
-      if (!clients.includes(user)) {
-        clients.push(user);
-        localStorage.setItem('active_clients_list', JSON.stringify(clients));
-      }
-    }
+            function resize() {
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight - 220; // Panel uchun joy
+            }
+            resize(); window.addEventListener('resize', resize);
 
-    function sendClientMsg() {
-      const input = document.getElementById('clientInput');
-      const text = input.value.trim();
-      if (!text) return;
+            function addLog(name, status) {
+                const panel = document.getElementById('logPanel');
+                const time = new Date().toLocaleTimeString();
+                const div = document.createElement('div');
+                div.className = 'log-item';
+                div.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-name">${name}</span> <span class="log-msg">${status}</span>`;
+                panel.prepend(div);
+                if(panel.children.length > 30) panel.lastChild.remove();
+            }
 
-      const msg = { id: Date.now(), sender: username, text: text, isAdmin: false, time: new Date().toLocaleTimeString().slice(0, 5) };
-      let history = JSON.parse(localStorage.getItem(`chat_${username}`) || '[]');
-      history.push(msg);
-      localStorage.setItem(`chat_${username}`, JSON.stringify(history));
+            // Dastlabki log
+            agents.forEach(a => addLog(a.name, "Tizimga ulandi (24/7)"));
 
-      channel.postMessage({ type: 'CLIENT_MSG', client: username, data: msg });
-      input.value = '';
-      renderClientMessages();
-    }
+            // Har 5 sekundda log va motivatsiya
+            setInterval(() => {
+                const agent = agents[Math.floor(Math.random() * agents.length)];
+                const actions = ["Vazifa bajarildi ✅", "Yangi buyruq qabul qildi 📨", "Tizimni tekshirmoqda 🔍", "Ma'lumot yubordi 📤"];
+                addLog(agent.name, actions[Math.floor(Math.random() * actions.length)]);
+                
+                // Motivatsiya banneri va xabari
+                const banner = document.getElementById('motivationBanner');
+                const phrase = motivationPhrases[Math.floor(Math.random() * motivationPhrases.length)];
+                banner.innerText = phrase;
+                banner.style.display = 'block';
+                addLog("Motivatsiya", phrase);
+                setTimeout(() => { banner.style.display = 'none'; }, 4000);
 
-    function renderClientMessages() {
-      if (!username) return;
-      const history = JSON.parse(localStorage.getItem(`chat_${username}`) || '[]');
-      const container = document.getElementById('clientMsgArea');
-      container.innerHTML = '';
-      history.forEach(msg => {
-        const div = document.createElement('div');
-        div.className = `msg-bubble ${msg.isAdmin ? 'msg-server' : 'msg-client'}`;
-        div.innerHTML = `<div class="msg-info"><span>${msg.sender}</span> <span>${msg.time}</span></div><div>${msg.text}</div>`;
-        container.appendChild(div);
-      });
-      container.scrollTop = container.scrollHeight;
-    }
+            }, 5000);
 
-    function openProfile() {
-      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
-      const data = usersDb[username] || {};
-      document.getElementById('profileUsernameInput').value = username;
-      document.getElementById('profilePasswordInput').value = data.password || '';
-      document.getElementById('profileBirthdateInput').value = data.birthdate || '';
-      document.getElementById('profileLocationInput').value = data.location || '';
-      document.getElementById('fileNameDisplay').innerText = data.avatar ? "Rasm yuklangan" : "Rasm tanlanmadi";
-      tempAvatarBase64 = data.avatar || null;
-      setAvatarEl('modalAvatar', tempAvatarBase64, username);
-      document.getElementById('profileModal').style.display = 'flex';
-    }
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function handleImageUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        tempAvatarBase64 = evt.target.result;
-        document.getElementById('modalAvatar').innerHTML = `<img src="${tempAvatarBase64}">`;
-        document.getElementById('fileNameDisplay').innerText = file.name;
-      };
-      reader.readAsDataURL(file);
-    }
+                // Grid
+                ctx.strokeStyle = '#1a1a3a';
+                ctx.lineWidth = 1;
+                for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
+                for(let j=0; j<canvas.height; j+=50) { ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(canvas.width,j); ctx.stroke(); }
 
-    function saveProfile() {
-      const newU = document.getElementById('profileUsernameInput').value.trim().toLowerCase();
-      const newP = document.getElementById('profilePasswordInput').value.trim();
-      let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
-      const oldData = usersDb[username] || {};
-      delete usersDb[username];
+                agents.forEach(a => {
+                    a.x += a.vx; a.y += a.vy;
+                    if(a.x < 20 || a.x > canvas.width-20) a.vx *= -1;
+                    if(a.y < 20 || a.y > canvas.height-20) a.vy *= -1;
 
-      usersDb[newU] = { ...oldData, password: newP, birthdate: document.getElementById('profileBirthdateInput').value, location: document.getElementById('profileLocationInput').value, avatar: tempAvatarBase64 !== null ? tempAvatarBase64 : oldData.avatar };
-      localStorage.setItem('users_db', JSON.stringify(usersDb));
-      username = newU;
-      updateClientHeader();
-      alert("Saqlandi!");
-      document.getElementById('profileModal').style.display = 'none';
-    }
+                    // Chizish
+                    ctx.fillStyle = '#3b82f6';
+                    ctx.shadowBlur = 15; ctx.shadowColor = '#3b82f6';
+                    ctx.beginPath(); ctx.arc(a.x, a.y, 6, 0, Math.PI*2); ctx.fill();
+                    ctx.shadowBlur = 0;
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 11px Inter';
+                    ctx.fillText(a.name, a.x-20, a.y-15);
+                    
+                    // Status chiziq
+                    ctx.fillStyle = '#10b981';
+                    ctx.fillRect(a.x-15, a.y+8, 30, 2);
+                });
 
-    function initAdminDashboard() {
-      renderClientList();
-      startCanvasSimulation();
-    }
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
 
-    function renderClientList() {
-      const clients = JSON.parse(localStorage.getItem('active_clients_list') || '[]');
-      const container = document.getElementById('clientListContainer');
-      container.innerHTML = '';
-      clients.forEach(c => {
-        let usersDb = JSON.parse(localStorage.getItem('users_db') || '{}');
-        const avatar = (usersDb[c] || {}).avatar;
-        const div = document.createElement('div');
-        div.className = `client-item ${selectedClient === c ? 'active' : ''}`;
-        div.onclick = () => selectClient(c);
-        div.innerHTML = `
-          <div class="client-avatar-mini">${avatar ? `<img src="${avatar}">` : c.charAt(0).toUpperCase()}</div>
-          <div style="font-weight:600; color:#fff;">${c}</div>
-        `;
-        container.appendChild(div);
-      });
-    }
+        // -------- CHAT SYSTEM --------
+        function renderChat() {
+            const container = document.getElementById('chatMessages');
+            const target = isAdmin ? selectedClient : 'admin';
+            if(!target) { container.innerHTML = '<div style="color:var(--text-muted); text-align:center;">Suhbat tanlanmagan</div>'; return; }
 
-    function selectClient(c) {
-      selectedClient = c;
-      document.getElementById('activeChatTitle').innerText = "Chat: " + c;
-      renderAdminMessages();
-      renderClientList();
-    }
+            const chatKey = isAdmin ? `admin_${target}` : `user_${currentUser}`;
+            const msgs = chatHistory[chatKey] || [];
+            
+            container.innerHTML = '';
+            msgs.forEach(m => {
+                const div = document.createElement('div');
+                div.className = `msg ${m.sender === 'admin' && isAdmin ? 'msg-admin' : m.sender === 'admin' ? 'msg-admin' : 'msg-client'}`;
+                div.style.alignSelf = (m.sender === 'admin' && isAdmin) ? 'flex-end' : (m.sender === 'client' && !isAdmin) ? 'flex-end' : 'flex-start';
+                div.innerText = m.text;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
 
-    function renderAdminMessages() {
-      if (!selectedClient) return;
-      const history = JSON.parse(localStorage.getItem(`chat_${selectedClient}`) || '[]');
-      const container = document.getElementById('adminMsgArea');
-      container.innerHTML = '';
-      history.forEach(msg => {
-        const div = document.createElement('div');
-        div.className = `msg-bubble ${msg.isAdmin ? 'msg-server' : 'msg-client'}`;
-        div.style.alignSelf = msg.isAdmin ? 'flex-end' : 'flex-start';
-        div.style.background = msg.isAdmin ? '#2563eb' : '#1e293b';
-        div.style.color = '#fff';
-        div.innerHTML = `<div class="msg-info"><span>${msg.sender}</span> <span>${msg.time}</span></div><div>${msg.text}</div>`;
-        container.appendChild(div);
-      });
-      container.scrollTop = container.scrollHeight;
-    }
+        function sendChat() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if(!text) return;
 
-    function sendAdminMsg() {
-      const input = document.getElementById('adminInput');
-      const text = input.value.trim();
-      if (!text || !selectedClient) return;
+            let target = isAdmin ? selectedClient : 'admin';
+            if(!target) return alert("Iltimos, suhbatdoshingizni tanlang!");
 
-      const msg = { id: Date.now(), sender: 'Admin', text: text, isAdmin: true, time: new Date().toLocaleTimeString().slice(0, 5) };
-      let history = JSON.parse(localStorage.getItem(`chat_${selectedClient}`) || '[]');
-      history.push(msg);
-      localStorage.setItem(`chat_${selectedClient}`, JSON.stringify(history));
+            const chatKey = isAdmin ? `admin_${target}` : `user_${currentUser}`;
+            if(!chatHistory[chatKey]) chatHistory[chatKey] = [];
+            
+            const msg = { text: text, sender: isAdmin ? 'admin' : 'client', time: Date.now() };
+            chatHistory[chatKey].push(msg);
+            localStorage.setItem('tracker_chats', JSON.stringify(chatHistory));
 
-      channel.postMessage({ type: 'SERVER_MSG', client: selectedClient, data: msg });
-      input.value = '';
-      renderAdminMessages();
-    }
+            input.value = '';
+            renderChat();
+            if(isAdmin) updateClientList();
+        }
 
-    // CCTV & Canvas Simulation (To'g'rilangan proporsiya bilan)
-    function startCanvasSimulation() {
-      const canvas = document.getElementById('officeCanvas');
-      const container = document.getElementById('canvasContainer');
-      const ctx = canvas.getContext('2d');
+        function initAdmin() {
+            startTracker();
+            updateClientList();
+            document.getElementById('clientList').addEventListener('click', (e) => {
+                const item = e.target.closest('.client-item');
+                if(item) {
+                    selectedClient = item.dataset.client;
+                    document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    renderChat();
+                }
+            });
+        }
 
-      function resizeCanvas() {
-        canvas.width = container.clientWidth;
-        // Log paneliga joy qoldirib, qolgan balandlikni to'g'ri oladi
-        canvas.height = container.clientHeight - document.getElementById('activityLog').clientHeight;
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
+        function updateClientList() {
+            const clients = ['user']; // Oddiy demo uchun
+            const container = document.getElementById('clientList');
+            container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:5px;">Mijozlar ro'yxati</div>`;
+            clients.forEach(c => {
+                const div = document.createElement('div');
+                div.className = `client-item ${selectedClient === c ? 'active' : ''}`;
+                div.dataset.client = c;
+                div.innerHTML = `<div class="avatar-small">${c.charAt(0).toUpperCase()}</div><div>${c}</div>`;
+                container.appendChild(div);
+            });
+        }
 
-      let agents = [
-        { x: 100, y: 100, vx: 1.5, vy: 1, name: 'Agent 1', color: '#60a5fa' },
-        { x: 300, y: 200, vx: -1, vy: 1.2, name: 'Agent 2', color: '#34d399' },
-        { x: 500, y: 150, vx: 1.2, vy: -1, name: 'Agent 3', color: '#c084fc' }
-      ];
+        function initClient() {
+            startTracker();
+            document.getElementById('clientList').style.display = 'none';
+            renderChat();
+            // Mijoz avtomatik admin bilan suhbatni ochadi
+            selectedClient = 'admin';
+            document.getElementById('chatInput').placeholder = "Admin ga xabar yozing...";
+        }
 
-      setInterval(() => {
-        const logPanel = document.getElementById('activityLog');
-        const timeStr = new Date().toLocaleTimeString();
-        const randAgent = agents[Math.floor(Math.random() * agents.length)];
-        const div = document.createElement('div');
-        div.className = 'log-item';
-        div.innerHTML = `<span style="color:#94a3b8">[${timeStr}]</span> <span style="color:${randAgent.color}">${randAgent.name}</span>: Faollik kuzatildi (Status: Active)`;
-        logPanel.prepend(div);
-        if (logPanel.children.length > 20) logPanel.lastChild.remove();
-      }, 3000);
-
-      function loop() {
-        ctx.fillStyle = '#05070c';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
-        for (let j = 0; j < canvas.height; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke(); }
-
-        agents.forEach(a => {
-          a.x += a.vx; a.y += a.vy;
-          if (a.x < 20 || a.x > canvas.width - 20) a.vx *= -1;
-          if (a.y < 20 || a.y > canvas.height - 20) a.vy *= -1;
-
-          ctx.fillStyle = a.color;
-          ctx.beginPath(); ctx.arc(a.x, a.y, 8, 0, Math.PI * 2); ctx.fill();
-          ctx.fillStyle = '#fff'; ctx.font = '11px Inter'; ctx.fillText(a.name, a.x - 15, a.y - 12);
-        });
-        requestAnimationFrame(loop);
-      }
-      loop();
-    }
-
-    function logout() {
-      username = '';
-      selectedClient = null;
-      document.getElementById('clientScreen').style.display = 'none';
-      document.getElementById('adminScreen').style.display = 'none';
-      document.getElementById('authScreen').style.display = 'block';
-    }
-
-    channel.onmessage = (e) => {
-      if (username === ADMIN_USER && e.data.type === 'CLIENT_MSG') {
-        renderClientList();
-        if (selectedClient === e.data.client) renderAdminMessages();
-      } else if (username !== ADMIN_USER && e.data.type === 'SERVER_MSG' && e.data.client === username) {
-        renderClientMessages();
-      }
-    };
-  </script>
+    </script>
 </body>
 </html>
