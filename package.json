@@ -1,20 +1,9 @@
 {
-  "name": "qamir-ai-telegram-miniapp",
-  "version": "2.0.0",
-  "private": true,
-  "description": "Qamir AI Telegram Mini App with Render PostgreSQL, server-side users, messages and admin dashboard",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "@google/genai": "^1.0.0",
-    "bcryptjs": "^3.0.2",
-    "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "pg": "^8.16.3"
-  }
+  "name":"qamir-ai",
+  "version":"3.0.0",
+  "private":true,
+  "main":"server.js",
+  "scripts":{"start":"node server.js"},
+  "engines":{"node":">=20"},
+  "dependencies":{"dotenv":"^16.5.0","express":"^5.1.0","pg":"^8.16.3"}
 }
