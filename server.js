@@ -27,6 +27,7 @@ async function db(query, params = []) {
 // ================= DATABASE =================
 
 async function initDatabase() {
+  // 1. USERS jadvali
   await db(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -37,7 +38,10 @@ async function initDatabase() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_seen TIMESTAMPTZ
     );
+  `);
 
+  // 2. MESSAGES jadvali
+  await db(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -45,9 +49,12 @@ async function initDatabase() {
       text TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
 
+  // 3. SETTINGS jadvali - ID ustuni BOR
+  await db(`
     CREATE TABLE IF NOT EXISTS settings (
-      id INTEGER PRIMARY KEY DEFAULT 1,
+      id SERIAL PRIMARY KEY,
       system_prompt TEXT NOT NULL DEFAULT
         'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.',
       temperature NUMERIC NOT NULL DEFAULT 0.7,
@@ -57,14 +64,25 @@ async function initDatabase() {
     );
   `);
 
+  // 4. Settings jadvalida ID=1 borligini tekshirish (FIX: id ustuni borligiga ishonch hosil qilamiz)
   const setting = await db(
     `SELECT id FROM settings WHERE id = 1`
   );
 
   if (!setting.length) {
-    await db(`INSERT INTO settings (id) VALUES (1)`);
+    await db(
+      `INSERT INTO settings (id, system_prompt, temperature, max_tokens, model, updated_at)
+       VALUES (1, 
+         'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.',
+         0.7,
+         1024,
+         'gemini-3.6-flash',
+         NOW()
+       )`
+    );
   }
 
+  // 5. Admin yaratish
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (adminPassword) {
@@ -94,6 +112,8 @@ async function initDatabase() {
       );
     }
   }
+
+  console.log("✅ Database initialized successfully!");
 }
 
 // ================= AUTH =================
@@ -501,6 +521,7 @@ app.post("/api/chat", requireUser, async (req, res) => {
 
 // ================= ADMIN =================
 
+// Admin sahifasi
 app.get("/admin", (req, res) => {
   res.sendFile(
     path.join(__dirname, "public", "index.html")
@@ -629,16 +650,22 @@ app.post("/api/admin/reply", requireAdmin, async (req, res) => {
 });
 
 app.get("/api/admin/settings", requireAdmin, async (req, res) => {
-  const rows = await db(
-    `SELECT *
-     FROM settings
-     WHERE id = 1`
-  );
+  try {
+    const rows = await db(
+      `SELECT * FROM settings WHERE id = 1`
+    );
 
-  res.json({
-    success: true,
-    settings: rows[0],
-  });
+    res.json({
+      success: true,
+      settings: rows[0] || null,
+    });
+  } catch (error) {
+    console.error("ADMIN SETTINGS ERROR:", error);
+
+    res.status(500).json({
+      error: "Sozlamalarni olishda xato",
+    });
+  }
 });
 
 app.post("/api/admin/settings", requireAdmin, async (req, res) => {
@@ -650,27 +677,43 @@ app.post("/api/admin/settings", requireAdmin, async (req, res) => {
       model = "gemini-3.6-flash",
     } = req.body || {};
 
-    await db(
-      `UPDATE settings
-       SET
-         system_prompt = $1,
-         temperature = $2,
-         max_tokens = $3,
-         model = $4,
-         updated_at = NOW()
-       WHERE id = 1`,
-      [
-        String(system_prompt || ""),
-        Number(temperature),
-        Number(max_tokens),
-        String(model),
-      ]
+    // Settings jadvalida id=1 borligiga ishonch hosil qilamiz
+    const exists = await db(
+      `SELECT id FROM settings WHERE id = 1`
     );
 
+    if (!exists.length) {
+      await db(
+        `INSERT INTO settings (id, system_prompt, temperature, max_tokens, model, updated_at)
+         VALUES (1, $1, $2, $3, $4, NOW())`,
+        [
+          String(system_prompt || ""),
+          Number(temperature),
+          Number(max_tokens),
+          String(model),
+        ]
+      );
+    } else {
+      await db(
+        `UPDATE settings
+         SET
+           system_prompt = $1,
+           temperature = $2,
+           max_tokens = $3,
+           model = $4,
+           updated_at = NOW()
+         WHERE id = 1`,
+        [
+          String(system_prompt || ""),
+          Number(temperature),
+          Number(max_tokens),
+          String(model),
+        ]
+      );
+    }
+
     const rows = await db(
-      `SELECT *
-       FROM settings
-       WHERE id = 1`
+      `SELECT * FROM settings WHERE id = 1`
     );
 
     res.json({
@@ -688,14 +731,15 @@ app.post("/api/admin/settings", requireAdmin, async (req, res) => {
 
 // ================= FRONTEND =================
 
+// public papkasi
 app.use(
   express.static(
     path.join(__dirname, "public")
   )
 );
 
-// Express 5 uchun app.get("*") o'rniga middleware
-app.use((req, res) => {
+// Barcha boshqa so'rovlar uchun index.html
+app.get("*", (req, res) => {
   res.sendFile(
     path.join(__dirname, "public", "index.html")
   );
@@ -707,10 +751,10 @@ async function start() {
   try {
     await initDatabase();
 
-    console.log("PostgreSQL: connected");
+    console.log("✅ PostgreSQL: connected");
 
     console.log(
-      "Gemini API key:",
+      "✅ Gemini API key:",
       process.env.GEMINI_API_KEY
         ? "configured"
         : "NOT configured"
@@ -718,11 +762,11 @@ async function start() {
 
     app.listen(PORT, () => {
       console.log(
-        `Qamir AI server running on port ${PORT}`
+        `🚀 Qamir AI server running on port ${PORT}`
       );
     });
   } catch (error) {
-    console.error("STARTUP ERROR:", error);
+    console.error("❌ STARTUP ERROR:", error);
     process.exit(1);
   }
 }
