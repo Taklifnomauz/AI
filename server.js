@@ -31,15 +31,21 @@ async function db(query, params = []) {
   }
 }
 
-// ================= INIT DATABASE =================
+// ================= CLEAN START =================
 
 async function initDatabase() {
   try {
-    console.log("⏳ Initializing database...");
+    console.log("⏳ CLEAN START: Dropping all tables...");
 
-    // 1. USERS
+    // ====== BARCHA JADVALLARNI O'CHIRISH ======
+    await db(`DROP TABLE IF EXISTS messages CASCADE;`);
+    await db(`DROP TABLE IF EXISTS settings CASCADE;`);
+    await db(`DROP TABLE IF EXISTS users CASCADE;`);
+    console.log("✅ All tables dropped");
+
+    // ====== USERS ======
     await db(`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         email TEXT,
@@ -49,11 +55,11 @@ async function initDatabase() {
         last_seen TIMESTAMPTZ
       );
     `);
-    console.log("✅ Users table ready");
+    console.log("✅ Users table created");
 
-    // 2. MESSAGES
+    // ====== MESSAGES ======
     await db(`
-      CREATE TABLE IF NOT EXISTS messages (
+      CREATE TABLE messages (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         sender TEXT NOT NULL CHECK (sender IN ('user', 'assistant', 'admin')),
@@ -61,11 +67,11 @@ async function initDatabase() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log("✅ Messages table ready");
+    console.log("✅ Messages table created");
 
-    // 3. SETTINGS
+    // ====== SETTINGS ======
     await db(`
-      CREATE TABLE IF NOT EXISTS settings (
+      CREATE TABLE settings (
         id SERIAL PRIMARY KEY,
         system_prompt TEXT NOT NULL DEFAULT 
           'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.',
@@ -75,59 +81,40 @@ async function initDatabase() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log("✅ Settings table ready");
+    console.log("✅ Settings table created");
 
-    // 4. SETTINGS ga default qiymat qo'shish
-    const setting = await db(`SELECT * FROM settings WHERE id = 1`);
+    // ====== DEFAULT SETTINGS ======
+    await db(`
+      INSERT INTO settings (id, system_prompt, temperature, max_tokens, model, updated_at)
+      VALUES (
+        1,
+        'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.',
+        0.7,
+        1024,
+        'gemini-3.6-flash',
+        NOW()
+      );
+    `);
+    console.log("✅ Default settings inserted");
 
-    if (!setting.length) {
-      await db(`
-        INSERT INTO settings (id, system_prompt, temperature, max_tokens, model, updated_at)
-        VALUES (
-          1,
-          'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.',
-          0.7,
-          1024,
-          'gemini-3.6-flash',
-          NOW()
-        )
-      `);
-      console.log("✅ Default settings inserted");
-    }
-
-    // 5. ADMIN yaratish
+    // ====== ADMIN ======
     const adminPassword = process.env.ADMIN_PASSWORD;
-
     if (adminPassword) {
       const adminHash = crypto
         .createHash("sha256")
         .update(adminPassword)
         .digest("hex");
 
-      const existing = await db(
-        `SELECT id FROM users WHERE username = 'admin' LIMIT 1`
+      await db(
+        `INSERT INTO users
+        (username, email, password_hash, is_admin, last_seen)
+        VALUES ('admin', 'admin@qamir.ai', $1, TRUE, NOW())`,
+        [adminHash]
       );
-
-      if (!existing.length) {
-        await db(
-          `INSERT INTO users
-          (username, email, password_hash, is_admin, last_seen)
-          VALUES ('admin', 'admin@qamir.ai', $1, TRUE, NOW())`,
-          [adminHash]
-        );
-        console.log("✅ Admin user created");
-      } else {
-        await db(
-          `UPDATE users
-           SET password_hash = $1, is_admin = TRUE
-           WHERE username = 'admin'`,
-          [adminHash]
-        );
-        console.log("✅ Admin user updated");
-      }
+      console.log("✅ Admin user created");
     }
 
-    console.log("✅ Database initialized successfully!");
+    console.log("✅ Database CLEAN START completed!");
   } catch (error) {
     console.error("❌ Database init error:", error.message);
     throw error;
@@ -620,13 +607,9 @@ app.post("/api/admin/settings", requireAdmin, async (req, res) => {
 
 // ================= FRONTEND =================
 
-// Static fayllar
 app.use(express.static(path.join(__dirname, "public")));
 
-// ================= CATCH-ALL (Express 5 uchun to'g'ri) =================
-// Express 5 da app.get('*') o'rniga app.use() ishlatiladi
 app.use((req, res) => {
-  // Agar so'rov API ga bo'lmasa, index.html ni qaytar
   if (!req.path.startsWith('/api/') && req.path !== '/health' && req.path !== '/admin') {
     res.sendFile(path.join(__dirname, "public", "index.html"));
   } else {
