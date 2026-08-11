@@ -413,12 +413,12 @@ async function askGemini(userText, history = []) {
   });
 
   // ================= GEMINI URL =================
+const url =
+  "https://generativelanguage.googleapis.com/v1beta/models/" +
+  encodeURIComponent(model) +
+  ":generateContent";
 
-  const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/` +
-    `${encodeURIComponent(model)}:generateContent`;
-
-  console.log("Gemini model:", model);
+console.log("Gemini model:", model);
 
   // ================= REQUEST =================
 
