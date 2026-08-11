@@ -8,12 +8,20 @@ const { Pool } = require("pg");
 const app = express();
 const PORT = Number(process.env.PORT) || 10000;
 
-// ================= BASIC =================
+// =====================================================
+// BASIC
+// =====================================================
 
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "8mb" }));
+app.use(express.urlencoded({ extended: true, limit: "8mb" }));
 
-// ================= DATABASE =================
+// =====================================================
+// DATABASE
+// =====================================================
+
+if (!process.env.DATABASE_URL) {
+  console.error("ERROR: DATABASE_URL topilmadi!");
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -28,10 +36,16 @@ async function db(query, params = []) {
   return result.rows;
 }
 
-// ================= DATABASE INIT =================
+// =====================================================
+// DATABASE INIT
+// =====================================================
 
 async function initDatabase() {
   console.log("Database tekshirilmoqda...");
+
+  // ---------------------------------------------------
+  // USERS
+  // ---------------------------------------------------
 
   await db(`
     CREATE TABLE IF NOT EXISTS users (
@@ -40,10 +54,27 @@ async function initDatabase() {
       email TEXT DEFAULT '',
       password_hash TEXT NOT NULL,
       is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      avatar_data TEXT DEFAULT '',
+      birth_date DATE,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_seen TIMESTAMPTZ
     )
   `);
+
+  // Eski users jadvaliga yangi ustunlarni qo'shamiz
+  await db(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS avatar_data TEXT DEFAULT ''
+  `);
+
+  await db(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS birth_date DATE
+  `);
+
+  // ---------------------------------------------------
+  // MESSAGES
+  // ---------------------------------------------------
 
   await db(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -57,6 +88,10 @@ async function initDatabase() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  // ---------------------------------------------------
+  // SETTINGS
+  // ---------------------------------------------------
 
   await db(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -94,12 +129,19 @@ async function initDatabase() {
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
+  // ---------------------------------------------------
+  // DEFAULT SETTINGS
+  // ---------------------------------------------------
+
   const settings = await db(`
     SELECT id
     FROM settings
     WHERE id = 1
     LIMIT 1
   `);
+
+  const defaultPrompt =
+    "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.";
 
   if (!settings.length) {
     await db(
@@ -123,52 +165,32 @@ async function initDatabase() {
         NOW()
       )
       `,
-      [
-        "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.",
-      ]
+      [defaultPrompt]
     );
   } else {
     await db(
       `
       UPDATE settings
       SET
-        system_prompt = COALESCE(
-          system_prompt,
-          $1
-        ),
-        temperature = COALESCE(
-          temperature,
-          0.7
-        ),
-        max_tokens = COALESCE(
-          max_tokens,
-          1024
-        ),
-        model = COALESCE(
-          model,
-          'gemini-2.5-flash'
-        ),
-        updated_at = COALESCE(
-          updated_at,
-          NOW()
-        )
+        system_prompt = COALESCE(system_prompt, $1),
+        temperature = COALESCE(temperature, 0.7),
+        max_tokens = COALESCE(max_tokens, 1024),
+        model = COALESCE(model, 'gemini-2.5-flash'),
+        updated_at = COALESCE(updated_at, NOW())
       WHERE id = 1
       `,
-      [
-        "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.",
-      ]
+      [defaultPrompt]
     );
   }
 
-  // ================= ADMIN =================
+  // ===================================================
+  // ADMIN
+  // ===================================================
 
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (adminPassword) {
-    const adminHash = crypto
-      .createHash("sha256")
-      .update(String(adminPassword))
-      .digest("hex");
+    const adminHash = hashPassword(adminPassword);
 
     const existingAdmin = await db(`
       SELECT id
@@ -225,7 +247,9 @@ async function initDatabase() {
   console.log("Database tayyor.");
 }
 
-// ================= PASSWORD =================
+// =====================================================
+// PASSWORD
+// =====================================================
 
 function hashPassword(password) {
   return crypto
@@ -234,7 +258,9 @@ function hashPassword(password) {
     .digest("hex");
 }
 
-// ================= USER =================
+// =====================================================
+// SAFE USER
+// =====================================================
 
 function safeUser(row) {
   if (!row) return null;
@@ -242,20 +268,24 @@ function safeUser(row) {
   return {
     id: row.id,
     username: row.username,
-    email: row.email,
-    is_admin: row.is_admin,
+    email: row.email || "",
+    is_admin: Boolean(row.is_admin),
+    avatar_data: row.avatar_data || "",
+    birth_date: row.birth_date || null,
     created_at: row.created_at,
     last_seen: row.last_seen,
   };
 }
 
-// ================= AUTH =================
+// =====================================================
+// AUTH
+// =====================================================
 
 function getBearer(req) {
   const header = req.headers.authorization || "";
 
   if (header.startsWith("Bearer ")) {
-    return header.slice(7);
+    return header.slice(7).trim();
   }
 
   return null;
@@ -281,6 +311,8 @@ async function getUserFromRequest(req) {
       username,
       email,
       is_admin,
+      avatar_data,
+      birth_date,
       created_at,
       last_seen
     FROM users
@@ -292,6 +324,10 @@ async function getUserFromRequest(req) {
 
   return rows[0] || null;
 }
+
+// =====================================================
+// REQUIRE USER
+// =====================================================
 
 async function requireUser(req, res, next) {
   try {
@@ -313,6 +349,10 @@ async function requireUser(req, res, next) {
     });
   }
 }
+
+// =====================================================
+// REQUIRE ADMIN
+// =====================================================
 
 async function requireAdmin(req, res, next) {
   try {
@@ -337,174 +377,6 @@ async function requireAdmin(req, res, next) {
 
 // =====================================================
 // GEMINI AI
-// ================= GEMINI AI =================
-
-async function askGemini(userText, history = []) {
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY Render Environment'da sozlanmagan."
-    );
-  }
-
-  // Database'dan AI sozlamalarini olamiz
-  const settingsRows = await db(`
-    SELECT
-      system_prompt,
-      temperature,
-      max_tokens,
-      model
-    FROM settings
-    WHERE id = 1
-    LIMIT 1
-  `);
-
-  const settings = settingsRows[0] || {};
-
-  // Gemini modeli
-  const model =
-    process.env.GEMINI_MODEL ||
-    settings.model ||
-    "gemini-2.5-flash";
-
-  const systemPrompt =
-    settings.system_prompt ||
-    "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.";
-
-  console.log("Gemini model:", model);
-  console.log(
-    "Gemini API key:",
-    apiKey ? "configured" : "NOT configured"
-  );
-
-  // Suhbat tarixini Gemini formatiga o'tkazamiz
-  const contents = [];
-
-  for (const item of history.slice(-20)) {
-    const text = String(item.text || "").trim();
-
-    if (!text) continue;
-
-    // Faqat user va assistant xabarlarini yuboramiz
-    if (
-      item.sender !== "user" &&
-      item.sender !== "assistant"
-    ) {
-      continue;
-    }
-
-    contents.push({
-      role:
-        item.sender === "assistant"
-          ? "model"
-          : "user",
-
-      parts: [
-        {
-          text: text,
-        },
-      ],
-    });
-  }
-
-  // Hozirgi user xabari
-  contents.push({
-    role: "user",
-    parts: [
-      {
-        text: String(userText),
-      },
-    ],
-  });
-
-  // MUHIM: Gemini API URL
-  const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/" +
-    encodeURIComponent(model) +
-    ":generateContent";
-
-  console.log("Gemini URL:", url);
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text: systemPrompt,
-            },
-          ],
-        },
-
-        contents: contents,
-
-        generationConfig: {
-          temperature: Number(
-            settings.temperature ?? 0.7
-          ),
-
-          maxOutputTokens: Number(
-            settings.max_tokens ?? 1024
-          ),
-        },
-      }),
-    });
-
-    const data = await response.json();
-
-    console.log(
-      "Gemini HTTP status:",
-      response.status
-    );
-
-    if (!response.ok) {
-      console.error(
-        "GEMINI ERROR:",
-        JSON.stringify(data, null, 2)
-      );
-
-      throw new Error(
-        data?.error?.message ||
-        `Gemini HTTP ${response.status}`
-      );
-    }
-
-    const answer =
-      data?.candidates?.[0]?.content?.parts
-        ?.map((part) => part.text || "")
-        .join("")
-        .trim();
-
-    if (!answer) {
-      console.error(
-        "Gemini bo'sh javob:",
-        JSON.stringify(data, null, 2)
-      );
-
-      throw new Error(
-        "Gemini bo'sh javob qaytardi."
-      );
-    }
-
-    return answer;
-
-  } catch (error) {
-    console.error(
-      "GEMINI REQUEST ERROR:",
-      error
-    );
-
-    throw error;
-  }
-}
 // =====================================================
 
 async function askGemini(userText, history = []) {
@@ -529,7 +401,6 @@ async function askGemini(userText, history = []) {
 
   const settings = settingsRows[0] || {};
 
-  // Ishonchli model
   const model =
     process.env.GEMINI_MODEL ||
     settings.model ||
@@ -539,7 +410,15 @@ async function askGemini(userText, history = []) {
     settings.system_prompt ||
     "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.";
 
-  // ================= HISTORY =================
+  console.log("Gemini model:", model);
+  console.log(
+    "Gemini API key:",
+    apiKey ? "configured" : "NOT configured"
+  );
+
+  // ---------------------------------------------------
+  // HISTORY
+  // ---------------------------------------------------
 
   const contents = [];
 
@@ -548,29 +427,31 @@ async function askGemini(userText, history = []) {
 
     if (!text) continue;
 
-    // Faqat user va assistant tarixini yuboramiz.
-    // Admin xabarlarini user sifatida yubormaymiz.
-    let role = "user";
-
-    if (item.sender === "assistant") {
-      role = "model";
-    } else if (item.sender === "user") {
-      role = "user";
-    } else {
+    if (
+      item.sender !== "user" &&
+      item.sender !== "assistant"
+    ) {
       continue;
     }
 
     contents.push({
-      role,
+      role:
+        item.sender === "assistant"
+          ? "model"
+          : "user",
+
       parts: [
         {
-          text,
+          text: text,
         },
       ],
     });
   }
 
-  // Hozirgi savol
+  // ---------------------------------------------------
+  // CURRENT MESSAGE
+  // ---------------------------------------------------
+
   contents.push({
     role: "user",
     parts: [
@@ -580,15 +461,20 @@ async function askGemini(userText, history = []) {
     ],
   });
 
-  // ================= GEMINI URL =================
-const url =
-  "https://generativelanguage.googleapis.com/v1beta/models/" +
-  encodeURIComponent(model) +
-  ":generateContent";
+  // ---------------------------------------------------
+  // GEMINI URL
+  // ---------------------------------------------------
 
-console.log("Gemini model:", model);
+  const url =
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+    encodeURIComponent(model) +
+    ":generateContent";
 
-  // ================= REQUEST =================
+  console.log("Gemini URL:", url);
+
+  // ---------------------------------------------------
+  // REQUEST
+  // ---------------------------------------------------
 
   const response = await fetch(url, {
     method: "POST",
@@ -607,7 +493,7 @@ console.log("Gemini model:", model);
         ],
       },
 
-      contents,
+      contents: contents,
 
       generationConfig: {
         temperature: Number(
@@ -621,15 +507,14 @@ console.log("Gemini model:", model);
     }),
   });
 
-  // ================= RESPONSE =================
-
+  // Gemini javobini text sifatida olamiz
   const rawText = await response.text();
 
   let data;
 
   try {
     data = JSON.parse(rawText);
-  } catch {
+  } catch (error) {
     console.error(
       "Gemini JSON parse error:",
       rawText
@@ -640,11 +525,19 @@ console.log("Gemini model:", model);
     );
   }
 
+  console.log(
+    "Gemini HTTP:",
+    response.status
+  );
+
+  // ---------------------------------------------------
+  // ERROR
+  // ---------------------------------------------------
+
   if (!response.ok) {
     console.error(
-      "GEMINI HTTP ERROR:",
-      response.status,
-      JSON.stringify(data)
+      "GEMINI ERROR:",
+      JSON.stringify(data, null, 2)
     );
 
     throw new Error(
@@ -653,12 +546,16 @@ console.log("Gemini model:", model);
     );
   }
 
+  // ---------------------------------------------------
+  // ANSWER
+  // ---------------------------------------------------
+
   const candidates = data?.candidates || [];
 
   if (!candidates.length) {
     console.error(
       "Gemini candidates yo'q:",
-      JSON.stringify(data)
+      JSON.stringify(data, null, 2)
     );
 
     throw new Error(
@@ -669,26 +566,23 @@ console.log("Gemini model:", model);
   const parts =
     candidates[0]?.content?.parts || [];
 
-  const text = parts
+  const answer = parts
     .map((part) => part?.text || "")
     .join("")
     .trim();
 
-  if (!text) {
-    console.error(
-      "Gemini bo'sh text qaytardi:",
-      JSON.stringify(data)
-    );
-
+  if (!answer) {
     throw new Error(
       "Gemini bo'sh javob qaytardi."
     );
   }
 
-  return text;
+  return answer;
 }
 
-// ================= HEALTH =================
+// =====================================================
+// HEALTH
+// =====================================================
 
 app.get("/health", async (req, res) => {
   try {
@@ -718,7 +612,9 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// ================= REGISTER =================
+// =====================================================
+// REGISTER
+// =====================================================
 
 async function registerHandler(req, res) {
   try {
@@ -730,8 +626,7 @@ async function registerHandler(req, res) {
 
     if (!username || !password) {
       return res.status(400).json({
-        error:
-          "Username va parol kerak",
+        error: "Username va parol kerak",
       });
     }
 
@@ -747,13 +642,11 @@ async function registerHandler(req, res) {
 
     if (!cleanUsername) {
       return res.status(400).json({
-        error:
-          "Username bo'sh bo'lmasin",
+        error: "Username bo'sh bo'lmasin",
       });
     }
 
-    const hash =
-      hashPassword(password);
+    const hash = hashPassword(password);
 
     const rows = await db(
       `
@@ -776,6 +669,8 @@ async function registerHandler(req, res) {
         username,
         email,
         is_admin,
+        avatar_data,
+        birth_date,
         created_at,
         last_seen
       `,
@@ -811,7 +706,19 @@ async function registerHandler(req, res) {
   }
 }
 
-// ================= LOGIN =================
+app.post(
+  "/api/auth/register",
+  registerHandler
+);
+
+app.post(
+  "/api/register",
+  registerHandler
+);
+
+// =====================================================
+// LOGIN
+// =====================================================
 
 async function loginHandler(req, res) {
   try {
@@ -827,8 +734,7 @@ async function loginHandler(req, res) {
       });
     }
 
-    const hash =
-      hashPassword(password);
+    const hash = hashPassword(password);
 
     const rows = await db(
       `
@@ -837,6 +743,8 @@ async function loginHandler(req, res) {
         username,
         email,
         is_admin,
+        avatar_data,
+        birth_date,
         created_at,
         last_seen
       FROM users
@@ -873,6 +781,8 @@ async function loginHandler(req, res) {
         username,
         email,
         is_admin,
+        avatar_data,
+        birth_date,
         created_at,
         last_seen
       FROM users
@@ -903,16 +813,6 @@ async function loginHandler(req, res) {
 }
 
 app.post(
-  "/api/auth/register",
-  registerHandler
-);
-
-app.post(
-  "/api/register",
-  registerHandler
-);
-
-app.post(
   "/api/auth/login",
   loginHandler
 );
@@ -922,7 +822,9 @@ app.post(
   loginHandler
 );
 
-// ================= ME =================
+// =====================================================
+// ME
+// =====================================================
 
 app.get(
   "/api/me",
@@ -935,7 +837,191 @@ app.get(
   }
 );
 
-// ================= CHAT HISTORY =================
+// =====================================================
+// PROFILE GET
+// =====================================================
+
+app.get(
+  "/api/profile",
+  requireUser,
+  async (req, res) => {
+    try {
+      const rows = await db(
+        `
+        SELECT
+          id,
+          username,
+          email,
+          is_admin,
+          avatar_data,
+          birth_date,
+          created_at,
+          last_seen
+        FROM users
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [req.user.id]
+      );
+
+      res.json({
+        success: true,
+        user: safeUser(rows[0]),
+      });
+    } catch (error) {
+      console.error(
+        "PROFILE GET ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Profilni olishda xato",
+      });
+    }
+  }
+);
+
+// =====================================================
+// PROFILE UPDATE
+// =====================================================
+
+app.put(
+  "/api/profile",
+  requireUser,
+  async (req, res) => {
+    try {
+      const {
+        username,
+        email,
+        birth_date,
+        avatar_data,
+      } = req.body || {};
+
+      const cleanUsername =
+        String(
+          username ??
+            req.user.username
+        ).trim();
+
+      const cleanEmail =
+        String(
+          email ??
+            req.user.email ??
+            ""
+        ).trim();
+
+      let cleanBirthDate = null;
+
+      if (birth_date) {
+        const date = String(
+          birth_date
+        ).trim();
+
+        if (
+          !/^\d{4}-\d{2}-\d{2}$/.test(
+            date
+          )
+        ) {
+          return res.status(400).json({
+            error:
+              "Tug'ilgan sana noto'g'ri",
+          });
+        }
+
+        cleanBirthDate = date;
+      }
+
+      // Avatar data URL bo'lsa
+      let avatar = req.user.avatar_data || "";
+
+      if (
+        typeof avatar_data === "string"
+      ) {
+        if (
+          avatar_data === "" ||
+          avatar_data.startsWith(
+            "data:image/"
+          )
+        ) {
+          // Juda katta rasmni qabul qilmaymiz
+          if (
+            avatar_data.length >
+            7 * 1024 * 1024
+          ) {
+            return res.status(400).json({
+              error:
+                "Rasm juda katta. 5 MB gacha rasm yuklang.",
+            });
+          }
+
+          avatar = avatar_data;
+        }
+      }
+
+      if (!cleanUsername) {
+        return res.status(400).json({
+          error:
+            "Username bo'sh bo'lmasin",
+        });
+      }
+
+      const rows = await db(
+        `
+        UPDATE users
+        SET
+          username = $1,
+          email = $2,
+          birth_date = $3,
+          avatar_data = $4
+        WHERE id = $5
+        RETURNING
+          id,
+          username,
+          email,
+          is_admin,
+          avatar_data,
+          birth_date,
+          created_at,
+          last_seen
+        `,
+        [
+          cleanUsername,
+          cleanEmail,
+          cleanBirthDate,
+          avatar,
+          req.user.id,
+        ]
+      );
+
+      res.json({
+        success: true,
+        user: safeUser(rows[0]),
+      });
+    } catch (error) {
+      if (error.code === "23505") {
+        return res.status(409).json({
+          error:
+            "Bu username allaqachon mavjud",
+        });
+      }
+
+      console.error(
+        "PROFILE UPDATE ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Profilni saqlashda xato",
+      });
+    }
+  }
+);
+
+// =====================================================
+// CHAT HISTORY
+// =====================================================
 
 app.get(
   "/api/chat/history",
@@ -975,7 +1061,9 @@ app.get(
   }
 );
 
-// ================= CHAT =================
+// =====================================================
+// CHAT
+// =====================================================
 
 app.post(
   "/api/chat",
@@ -995,7 +1083,7 @@ app.post(
         });
       }
 
-      // Oldingi chat
+      // Eski chat
       const previous = await db(
         `
         SELECT
@@ -1009,7 +1097,7 @@ app.post(
         [req.user.id]
       );
 
-      // User xabarini saqlash
+      // User xabarini saqlaymiz
       await db(
         `
         INSERT INTO messages
@@ -1031,7 +1119,6 @@ app.post(
         ]
       );
 
-      // Last seen
       await db(
         `
         UPDATE users
@@ -1063,7 +1150,6 @@ app.post(
         });
       }
 
-      // AI javobini saqlash
       const saved = await db(
         `
         INSERT INTO messages
@@ -1109,7 +1195,9 @@ app.post(
   }
 );
 
-// ================= ADMIN PAGE =================
+// =====================================================
+// ADMIN PAGE
+// =====================================================
 
 app.get(
   "/admin",
@@ -1124,7 +1212,9 @@ app.get(
   }
 );
 
-// ================= ADMIN USERS =================
+// =====================================================
+// ADMIN USERS
+// =====================================================
 
 app.get(
   "/api/admin/users",
@@ -1137,6 +1227,8 @@ app.get(
           u.username,
           u.email,
           u.is_admin,
+          u.avatar_data,
+          u.birth_date,
           u.created_at,
           u.last_seen,
           COUNT(m.id)::int AS message_count
@@ -1148,6 +1240,8 @@ app.get(
           u.username,
           u.email,
           u.is_admin,
+          u.avatar_data,
+          u.birth_date,
           u.created_at,
           u.last_seen
         ORDER BY
@@ -1172,7 +1266,9 @@ app.get(
   }
 );
 
-// ================= ADMIN USER CHAT =================
+// =====================================================
+// ADMIN USER MESSAGES
+// =====================================================
 
 app.get(
   "/api/admin/users/:id/messages",
@@ -1199,6 +1295,8 @@ app.get(
           username,
           email,
           is_admin,
+          avatar_data,
+          birth_date,
           created_at,
           last_seen
         FROM users
@@ -1249,7 +1347,9 @@ app.get(
   }
 );
 
-// ================= ADMIN REPLY =================
+// =====================================================
+// ADMIN REPLY
+// =====================================================
 
 app.post(
   "/api/admin/reply",
@@ -1257,7 +1357,9 @@ app.post(
   async (req, res) => {
     try {
       const userId =
-        Number(req.body?.user_id);
+        Number(
+          req.body?.user_id
+        );
 
       const text = String(
         req.body?.message ||
@@ -1337,7 +1439,9 @@ app.post(
   }
 );
 
-// ================= ADMIN SETTINGS =================
+// =====================================================
+// ADMIN SETTINGS GET
+// =====================================================
 
 app.get(
   "/api/admin/settings",
@@ -1376,6 +1480,10 @@ app.get(
   }
 );
 
+// =====================================================
+// ADMIN SETTINGS SAVE
+// =====================================================
+
 app.post(
   "/api/admin/settings",
   requireAdmin,
@@ -1387,6 +1495,35 @@ app.post(
         max_tokens = 1024,
         model = "gemini-2.5-flash",
       } = req.body || {};
+
+      const cleanTemperature =
+        Number(temperature);
+
+      const cleanMaxTokens =
+        Number(max_tokens);
+
+      if (
+        !Number.isFinite(
+          cleanTemperature
+        )
+      ) {
+        return res.status(400).json({
+          error:
+            "Temperature noto'g'ri",
+        });
+      }
+
+      if (
+        !Number.isInteger(
+          cleanMaxTokens
+        ) ||
+        cleanMaxTokens <= 0
+      ) {
+        return res.status(400).json({
+          error:
+            "Max tokens noto'g'ri",
+        });
+      }
 
       await db(
         `
@@ -1404,9 +1541,15 @@ app.post(
             system_prompt ||
               "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz."
           ),
-          Number(temperature),
-          Number(max_tokens),
-          String(model),
+
+          cleanTemperature,
+
+          cleanMaxTokens,
+
+          String(
+            model ||
+              "gemini-2.5-flash"
+          ),
         ]
       );
 
@@ -1442,7 +1585,25 @@ app.post(
   }
 );
 
-// ================= FRONTEND =================
+// =====================================================
+// ADMIN CHECK
+// =====================================================
+
+app.get(
+  "/api/admin/check",
+  requireAdmin,
+  async (req, res) => {
+    res.json({
+      success: true,
+      admin: true,
+      user: safeUser(req.user),
+    });
+  }
+);
+
+// =====================================================
+// FRONTEND
+// =====================================================
 
 app.use(
   express.static(
@@ -1461,7 +1622,9 @@ app.use((req, res) => {
   );
 });
 
-// ================= START =================
+// =====================================================
+// START
+// =====================================================
 
 async function start() {
   try {
@@ -1503,7 +1666,9 @@ async function start() {
   }
 }
 
-// ================= SHUTDOWN =================
+// =====================================================
+// SHUTDOWN
+// =====================================================
 
 process.on(
   "SIGTERM",
@@ -1531,6 +1696,8 @@ process.on(
   }
 );
 
-// ================= RUN =================
+// =====================================================
+// RUN
+// =====================================================
 
 start();
