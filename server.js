@@ -6,12 +6,14 @@ const crypto = require("crypto");
 const { Pool } = require("pg");
 
 const app = express();
-const PORT = process.env.PORT || 10000;
+const PORT = Number(process.env.PORT) || 10000;
+
+// ================= BASIC =================
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ================= DATABASE CONNECTION =================
+// ================= DATABASE =================
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -26,12 +28,11 @@ async function db(query, params = []) {
   return result.rows;
 }
 
-// ================= DATABASE =================
+// ================= DATABASE INIT =================
 
 async function initDatabase() {
   console.log("Database tekshirilmoqda...");
 
-  // USERS
   await db(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -44,7 +45,6 @@ async function initDatabase() {
     )
   `);
 
-  // MESSAGES
   await db(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -58,15 +58,9 @@ async function initDatabase() {
     )
   `);
 
-  // SETTINGS
-  //
-  // Eski settings jadvali mavjud bo'lsa,
-  // uni o'chirmaymiz.
-  //
-  // Yangi bazada esa to'liq jadval yaratiladi.
   await db(`
     CREATE TABLE IF NOT EXISTS settings (
-      id INTEGER PRIMARY KEY,
+      id INTEGER PRIMARY KEY DEFAULT 1,
       system_prompt TEXT,
       temperature NUMERIC DEFAULT 0.7,
       max_tokens INTEGER DEFAULT 1024,
@@ -75,7 +69,6 @@ async function initDatabase() {
     )
   `);
 
-  // SETTINGS ustunlari mavjudligini tekshirish
   await db(`
     ALTER TABLE settings
     ADD COLUMN IF NOT EXISTS system_prompt TEXT
@@ -101,7 +94,6 @@ async function initDatabase() {
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
   `);
 
-  // Agar settings bo'sh bo'lsa, default sozlama yaratamiz.
   const settings = await db(`
     SELECT id
     FROM settings
@@ -110,7 +102,8 @@ async function initDatabase() {
   `);
 
   if (!settings.length) {
-    await db(`
+    await db(
+      `
       INSERT INTO settings
       (
         id,
@@ -123,28 +116,48 @@ async function initDatabase() {
       VALUES
       (
         1,
-        'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.',
+        $1,
         0.7,
         1024,
         'gemini-2.5-flash',
         NOW()
       )
-    `);
+      `,
+      [
+        "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.",
+      ]
+    );
   } else {
-    // NULL bo'lgan eski qiymatlarni tiklaymiz
-    await db(`
+    await db(
+      `
       UPDATE settings
       SET
         system_prompt = COALESCE(
           system_prompt,
-          'Siz Qamir AI nomli O''zbek tilida so''zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.'
+          $1
         ),
-        temperature = COALESCE(temperature, 0.7),
-        max_tokens = COALESCE(max_tokens, 1024),
-        model = COALESCE(model, 'gemini-2.5-flash'),
-        updated_at = COALESCE(updated_at, NOW())
+        temperature = COALESCE(
+          temperature,
+          0.7
+        ),
+        max_tokens = COALESCE(
+          max_tokens,
+          1024
+        ),
+        model = COALESCE(
+          model,
+          'gemini-2.5-flash'
+        ),
+        updated_at = COALESCE(
+          updated_at,
+          NOW()
+        )
       WHERE id = 1
-    `);
+      `,
+      [
+        "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.",
+      ]
+    );
   }
 
   // ================= ADMIN =================
@@ -236,7 +249,7 @@ function safeUser(row) {
   };
 }
 
-// ================= AUTH TOKEN =================
+// ================= AUTH =================
 
 function getBearer(req) {
   const header = req.headers.authorization || "";
@@ -280,8 +293,6 @@ async function getUserFromRequest(req) {
   return rows[0] || null;
 }
 
-// ================= USER AUTH =================
-
 async function requireUser(req, res, next) {
   try {
     const user = await getUserFromRequest(req);
@@ -302,8 +313,6 @@ async function requireUser(req, res, next) {
     });
   }
 }
-
-// ================= ADMIN AUTH =================
 
 async function requireAdmin(req, res, next) {
   try {
@@ -326,7 +335,9 @@ async function requireAdmin(req, res, next) {
   }
 }
 
-// ================= GEMINI =================
+// =====================================================
+// GEMINI AI
+// =====================================================
 
 async function askGemini(userText, history = []) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -350,6 +361,7 @@ async function askGemini(userText, history = []) {
 
   const settings = settingsRows[0] || {};
 
+  // Ishonchli model
   const model =
     process.env.GEMINI_MODEL ||
     settings.model ||
@@ -359,6 +371,8 @@ async function askGemini(userText, history = []) {
     settings.system_prompt ||
     "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.";
 
+  // ================= HISTORY =================
+
   const contents = [];
 
   for (const item of history.slice(-20)) {
@@ -366,19 +380,29 @@ async function askGemini(userText, history = []) {
 
     if (!text) continue;
 
+    // Faqat user va assistant tarixini yuboramiz.
+    // Admin xabarlarini user sifatida yubormaymiz.
+    let role = "user";
+
+    if (item.sender === "assistant") {
+      role = "model";
+    } else if (item.sender === "user") {
+      role = "user";
+    } else {
+      continue;
+    }
+
     contents.push({
-      role:
-        item.sender === "assistant"
-          ? "model"
-          : "user",
+      role,
       parts: [
         {
-          text: text,
+          text,
         },
       ],
     });
   }
 
+  // Hozirgi savol
   contents.push({
     role: "user",
     parts: [
@@ -388,10 +412,15 @@ async function askGemini(userText, history = []) {
     ],
   });
 
+  // ================= GEMINI URL =================
+
   const url =
-    "https://generativelanguage.googleapis.com/v1beta/models/" +
-    encodeURIComponent(model) +
-    ":generateContent";
+    `https://generativelanguage.googleapis.com/v1beta/models/` +
+    `${encodeURIComponent(model)}:generateContent`;
+
+  console.log("Gemini model:", model);
+
+  // ================= REQUEST =================
 
   const response = await fetch(url, {
     method: "POST",
@@ -424,11 +453,29 @@ async function askGemini(userText, history = []) {
     }),
   });
 
-  const data = await response.json();
+  // ================= RESPONSE =================
+
+  const rawText = await response.text();
+
+  let data;
+
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    console.error(
+      "Gemini JSON parse error:",
+      rawText
+    );
+
+    throw new Error(
+      "Gemini serveridan noto'g'ri javob keldi."
+    );
+  }
 
   if (!response.ok) {
     console.error(
-      "GEMINI ERROR:",
+      "GEMINI HTTP ERROR:",
+      response.status,
       JSON.stringify(data)
     );
 
@@ -438,13 +485,33 @@ async function askGemini(userText, history = []) {
     );
   }
 
-  const text =
-    data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
-      .join("")
-      .trim();
+  const candidates = data?.candidates || [];
+
+  if (!candidates.length) {
+    console.error(
+      "Gemini candidates yo'q:",
+      JSON.stringify(data)
+    );
+
+    throw new Error(
+      "Gemini javob qaytarmadi."
+    );
+  }
+
+  const parts =
+    candidates[0]?.content?.parts || [];
+
+  const text = parts
+    .map((part) => part?.text || "")
+    .join("")
+    .trim();
 
   if (!text) {
+    console.error(
+      "Gemini bo'sh text qaytardi:",
+      JSON.stringify(data)
+    );
+
     throw new Error(
       "Gemini bo'sh javob qaytardi."
     );
@@ -465,9 +532,15 @@ app.get("/health", async (req, res) => {
       gemini: Boolean(
         process.env.GEMINI_API_KEY
       ),
+      model:
+        process.env.GEMINI_MODEL ||
+        "gemini-2.5-flash",
     });
   } catch (error) {
-    console.error("HEALTH ERROR:", error);
+    console.error(
+      "HEALTH ERROR:",
+      error
+    );
 
     res.status(500).json({
       ok: false,
@@ -489,7 +562,8 @@ async function registerHandler(req, res) {
 
     if (!username || !password) {
       return res.status(400).json({
-        error: "Username va parol kerak",
+        error:
+          "Username va parol kerak",
       });
     }
 
@@ -505,11 +579,13 @@ async function registerHandler(req, res) {
 
     if (!cleanUsername) {
       return res.status(400).json({
-        error: "Username bo'sh bo'lmasin",
+        error:
+          "Username bo'sh bo'lmasin",
       });
     }
 
-    const hash = hashPassword(password);
+    const hash =
+      hashPassword(password);
 
     const rows = await db(
       `
@@ -583,7 +659,8 @@ async function loginHandler(req, res) {
       });
     }
 
-    const hash = hashPassword(password);
+    const hash =
+      hashPassword(password);
 
     const rows = await db(
       `
@@ -745,10 +822,12 @@ app.post(
 
       if (!text) {
         return res.status(400).json({
-          error: "Xabar bo'sh",
+          error:
+            "Xabar bo'sh",
         });
       }
 
+      // Oldingi chat
       const previous = await db(
         `
         SELECT
@@ -762,6 +841,7 @@ app.post(
         [req.user.id]
       );
 
+      // User xabarini saqlash
       await db(
         `
         INSERT INTO messages
@@ -783,6 +863,7 @@ app.post(
         ]
       );
 
+      // Last seen
       await db(
         `
         UPDATE users
@@ -814,6 +895,7 @@ app.post(
         });
       }
 
+      // AI javobini saqlash
       const saved = await db(
         `
         INSERT INTO messages
@@ -1094,8 +1176,7 @@ app.get(
   requireAdmin,
   async (req, res) => {
     try {
-      const rows = await db(
-        `
+      const rows = await db(`
         SELECT
           id,
           system_prompt,
@@ -1106,8 +1187,7 @@ app.get(
         FROM settings
         WHERE id = 1
         LIMIT 1
-        `
-      );
+      `);
 
       res.json({
         success: true,
@@ -1156,18 +1236,13 @@ app.post(
             system_prompt ||
               "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz."
           ),
-          Number(
-            temperature
-          ),
-          Number(
-            max_tokens
-          ),
+          Number(temperature),
+          Number(max_tokens),
           String(model),
         ]
       );
 
-      const rows = await db(
-        `
+      const rows = await db(`
         SELECT
           id,
           system_prompt,
@@ -1178,8 +1253,7 @@ app.post(
         FROM settings
         WHERE id = 1
         LIMIT 1
-        `
-      );
+      `);
 
       res.json({
         success: true,
@@ -1204,26 +1278,20 @@ app.post(
 
 app.use(
   express.static(
-    path.join(
-      __dirname,
-      "public"
-    )
+    path.join(__dirname, "public")
   )
 );
 
-// Express 5 uchun "*" ishlatmaymiz.
-// Shu middleware frontendga fallback qiladi.
-app.use(
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "public",
-        "index.html"
-      )
-    );
-  }
-);
+// Express 5 fallback
+app.use((req, res) => {
+  res.sendFile(
+    path.join(
+      __dirname,
+      "public",
+      "index.html"
+    )
+  );
+});
 
 // ================= START =================
 
@@ -1240,6 +1308,12 @@ async function start() {
       process.env.GEMINI_API_KEY
         ? "configured"
         : "NOT configured"
+    );
+
+    console.log(
+      "Gemini model:",
+      process.env.GEMINI_MODEL ||
+        "gemini-2.5-flash"
     );
 
     app.listen(
@@ -1266,7 +1340,12 @@ async function start() {
 process.on(
   "SIGTERM",
   async () => {
+    console.log(
+      "SIGTERM received"
+    );
+
     await pool.end();
+
     process.exit(0);
   }
 );
@@ -1274,9 +1353,16 @@ process.on(
 process.on(
   "SIGINT",
   async () => {
+    console.log(
+      "SIGINT received"
+    );
+
     await pool.end();
+
     process.exit(0);
   }
 );
+
+// ================= RUN =================
 
 start();
