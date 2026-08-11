@@ -1,0 +1,179 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: white;
+}
+
+.container {
+    max-width: 400px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    opacity: 0.9;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.user-card {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.avatar {
+    font-size: 50px;
+    margin-bottom: 10px;
+}
+
+.user-card h2 {
+    font-size: 20px;
+    margin-bottom: 5px;
+}
+
+.user-card p {
+    opacity: 0.8;
+    font-size: 14px;
+}
+
+.mood-section {
+    margin-bottom: 20px;
+}
+
+.mood-section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.mood-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.mood-btn {
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.mood-btn:active {
+    transform: scale(0.95);
+}
+
+.mood-btn.selected {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.mood-btn[data-mood="happy"]:hover { background: #fbbf24; }
+.mood-btn[data-mood="sad"]:hover { background: #60a5fa; }
+.mood-btn[data-mood="energy"]:hover { background: #f472b6; }
+.mood-btn[data-mood="relax"]:hover { background: #34d399; }
+
+.stats-section {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.stats-section h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    text-align: center;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.stat-number {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.stat-label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: white;
+    color: #667eea;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-primary:active, .btn-secondary:active {
+    transform: scale(0.95);
+}
+
+.footer {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 10px;
+}

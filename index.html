@@ -3,362 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Tracker 24/7</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-dark: #0b0b1a;
-            --card-bg: #141429;
-            --border: #2a2a4a;
-            --text-main: #e2e8f0;
-            --text-muted: #94a3b8;
-            --accent-blue: #3b82f6;
-            --accent-purple: #8b5cf6;
-            --accent-green: #10b981;
-            --accent-pink: #db2777;
-            --glow-blue: rgba(59, 130, 246, 0.15);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background-color: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-
-        /* LOGIN SCREEN */
-        .auth-card {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 0 50px var(--glow-blue);
-        }
-        .auth-title { font-size: 24px; font-weight: 700; text-align: center; color: #fff; margin-bottom: 8px; letter-spacing: 1px; }
-        .auth-subtitle { text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 14px; }
-        
-        .input-group { margin-bottom: 16px; }
-        input[type="text"], input[type="password"] {
-            width: 100%; padding: 14px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 12px; color: #fff; outline: none; transition: 0.3s;
-        }
-        input:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2); }
-
-        .btn-primary {
-            width: 100%; padding: 14px; background: var(--accent-purple); border: none; border-radius: 12px; color: #fff; font-weight: 700; cursor: pointer; transition: 0.3s; margin-top: 10px;
-        }
-        .btn-primary:hover { background: #7c3aed; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
-        .error-msg { color: #ef4444; font-size: 12px; text-align: center; margin-top: 10px; display: none; }
-
-        /* DASHBOARD MAIN */
-        .dashboard {
-            display: none; width: 100%; height: 100vh; padding: 15px; gap: 15px; background: var(--bg-dark);
-            grid-template-columns: 1fr 350px; grid-template-rows: 60px 1fr; 
-        }
-        
-        /* HEADER */
-        .header {
-            grid-column: 1 / -1; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px;
-            padding: 0 24px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .logo { font-weight: 700; font-size: 20px; color: #fff; display: flex; align-items: center; gap: 10px; }
-        .logo span { color: var(--accent-blue); }
-        .user-info { display: flex; align-items: center; gap: 15px; }
-        .user-info button { background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; color: var(--text-muted); cursor: pointer; }
-        .user-info button:hover { color: #fff; background: rgba(255,255,255,0.1); }
-
-        /* TRACKER MAP AREA */
-        .tracker-container {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; position: relative; overflow: hidden; display: flex; flex-direction: column;
-        }
-        #trackerCanvas { width: 100%; height: 100%; background: #0a0a1a; display: block; }
-        .motivation-banner {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(16, 185, 129, 0.9); padding: 8px 16px; border-radius: 20px; font-weight: 700; color: #fff; display: none; animation: popIn 0.5s ease;
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
-        }
-        @keyframes popIn { from { transform: translateX(-50%) scale(0.8); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
-
-        /* LOG PANEL */
-        .log-panel {
-            height: 220px; background: rgba(0,0,0,0.6); border-top: 1px solid var(--border); padding: 15px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px;
-        }
-        .log-item { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; gap: 10px; }
-        .log-time { color: var(--text-muted); }
-        .log-name { color: var(--accent-blue); font-weight: 700; }
-        .log-msg { color: #e2e8f0; }
-
-        /* SIDEBAR (CHAT) */
-        .sidebar {
-            background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden;
-        }
-        .client-list { height: 30%; border-bottom: 1px solid var(--border); overflow-y: auto; padding: 10px; }
-        .client-item {
-            padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; margin-bottom: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s;
-        }
-        .client-item:hover, .client-item.active { background: rgba(59, 130, 246, 0.15); border-left: 3px solid var(--accent-blue); }
-        .avatar-small { width: 30px; height: 30px; border-radius: 50%; background: var(--accent-purple); display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 12px; }
-
-        .chat-area { flex: 1; display: flex; flex-direction: column; padding: 15px; overflow: hidden; }
-        .messages { flex: 1; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4; }
-        .msg-client { align-self: flex-end; background: var(--accent-blue); color: #fff; }
-        .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.08); color: #e2e8f0; border: 1px solid var(--border); }
-
-        .chat-input { display: flex; gap: 10px; }
-        .chat-input input { flex: 1; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 8px; color: #fff; outline: none; }
-        .chat-input button { padding: 10px 15px; background: var(--accent-purple); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: 700; }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-    </style>
+    <title>Life Is Vibe</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <!-- AUTH -->
-    <div class="auth-card" id="authScreen">
-        <div class="auth-title">AGENT <span style="color:#3b82f6">TRACKER</span></div>
-        <div class="auth-subtitle">24/7 Kuzatuv va Motivatsiya Tizimi</div>
-        <div class="input-group">
-            <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block;">Login</label>
-            <input type="text" id="loginUser" placeholder="Loginni kiriting">
-        </div>
-        <div class="input-group">
-            <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block;">Parol</label>
-            <input type="password" id="loginPass" placeholder="Parolni kiriting">
-        </div>
-        <button class="btn-primary" onclick="login()">Tizimga Kirish</button>
-        <div class="error-msg" id="authError">Login yoki parol noto'g'ri!</div>
-        <div style="margin-top:15px; font-size:12px; color:var(--text-muted); text-align:center;">Admin: admin / 123 | Mijoz: user / 123</div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div class="dashboard" id="dashboardScreen">
-        <!-- Header -->
+    <div class="container">
         <div class="header">
-            <div class="logo"><span>◈</span> AGENT <span>TRACKER</span></div>
-            <div class="user-info">
-                <span id="headerUser" style="font-size:14px; font-weight:600;">Admin</span>
-                <button onclick="logout()">Chiqish</button>
+            <h1>🌸 Life Is Vibe</h1>
+            <p class="subtitle">Kundalik kayfiyatingizni kuzating</p>
+        </div>
+
+        <div class="user-card">
+            <div class="avatar" id="userAvatar">👤</div>
+            <h2 id="userName">Foydalanuvchi</h2>
+            <p id="userStatus">Bugun kayfiyatingiz qanday?</p>
+        </div>
+
+        <div class="mood-section">
+            <h3>Kayfiyatingizni tanlang</h3>
+            <div class="mood-buttons">
+                <button class="mood-btn" data-mood="happy">😊 Baxtli</button>
+                <button class="mood-btn" data-mood="sad">😔 G'amgin</button>
+                <button class="mood-btn" data-mood="energy">⚡ Energik</button>
+                <button class="mood-btn" data-mood="relax">😌 Tinch</button>
             </div>
         </div>
 
-        <!-- Main Map -->
-        <div class="tracker-container">
-            <canvas id="trackerCanvas"></canvas>
-            <div class="motivation-banner" id="motivationBanner">🚀 Ajoyib ish!</div>
-            <div class="log-panel" id="logPanel"></div>
+        <div class="stats-section">
+            <h3>📊 Bugungi statistika</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" id="moodCount">0</span>
+                    <span class="stat-label">Kayfiyatlar</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="streakCount">0</span>
+                    <span class="stat-label">Kunlar davomi</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Sidebar Chat -->
-        <div class="sidebar">
-            <div class="client-list" id="clientList">
-                <div style="color:var(--text-muted); font-size:12px; padding:5px;">Mijozlar ro'yxati</div>
-            </div>
-            <div class="chat-area">
-                <div style="font-size:12px; color:var(--text-muted); padding:5px; border-bottom:1px solid var(--border); margin-bottom:10px;">Xabarlar</div>
-                <div class="messages" id="chatMessages">
-                    <div style="color:var(--text-muted); font-size:13px; text-align:center; margin-top:20px;">Suhbat boshlash uchun mijozni tanlang</div>
-                </div>
-                <div class="chat-input">
-                    <input type="text" id="chatInput" placeholder="Xabar yozing...">
-                    <button onclick="sendChat()">Yuborish</button>
-                </div>
-            </div>
+        <div class="action-buttons">
+            <button class="btn-primary" id="saveMoodBtn">💾 Kayfiyatni saqlash</button>
+            <button class="btn-secondary" id="shareBtn">📤 Do'stlarga ulashish</button>
+        </div>
+
+        <div class="footer">
+            <p>Telegram Mini App v1.0</p>
         </div>
     </div>
 
-    <script>
-        // -------- LOGIC --------
-        let currentUser = null;
-        let selectedClient = null;
-        let isAdmin = false;
-
-        const DB_USERS = { 'admin': { pass: '123', role: 'admin' }, 'user': { pass: '123', role: 'client' } };
-        let chatHistory = JSON.parse(localStorage.getItem('tracker_chats')) || {};
-
-        function login() {
-            const u = document.getElementById('loginUser').value.trim().toLowerCase();
-            const p = document.getElementById('loginPass').value.trim();
-            const err = document.getElementById('authError');
-
-            if(!DB_USERS[u] || DB_USERS[u].pass !== p) { err.style.display = 'block'; return; }
-            err.style.display = 'none';
-            
-            currentUser = u;
-            isAdmin = DB_USERS[u].role === 'admin';
-            document.getElementById('authScreen').style.display = 'none';
-            document.getElementById('dashboardScreen').style.display = 'grid';
-            document.getElementById('headerUser').innerText = isAdmin ? "Admin" : currentUser;
-            
-            if(isAdmin) initAdmin();
-            else initClient();
-        }
-
-        function logout() {
-            currentUser = null; isAdmin = false;
-            document.getElementById('dashboardScreen').style.display = 'none';
-            document.getElementById('authScreen').style.display = 'block';
-        }
-
-        // -------- ANIMATION & SIMULATION (24/7 TRACKER) --------
-        let agents = [
-            { x: 100, y: 100, vx: 1.2, vy: 0.8, name: 'Agent 1', status: 'Ishda' },
-            { x: 400, y: 300, vx: -0.9, vy: 1.5, name: 'Agent 2', status: 'Kuzatmoqda' },
-            { x: 700, y: 150, vx: 1.5, vy: -1.0, name: 'Agent 3', status: 'Tahmin' }
-        ];
-
-        const motivationPhrases = [
-            "🚀 Ajoyib ish! Bugun unumdorlik 95%",
-            "✅ Vazifa bajarildi! Siz eng zo'rsiz!",
-            "💪 Qiyinchiliklarga bardosh bering!",
-            "🌟 Maqsad sari olg'a!",
-            "🏆 Yana bir rekord o'rnatildi!",
-            "🎯 Diqqatni jamlang, muvaffaqiyat yaqin!"
-        ];
-
-        function startTracker() {
-            const canvas = document.getElementById('trackerCanvas');
-            const container = canvas.parentElement;
-            const ctx = canvas.getContext('2d');
-
-            function resize() {
-                canvas.width = container.clientWidth;
-                canvas.height = container.clientHeight - 220; // Panel uchun joy
-            }
-            resize(); window.addEventListener('resize', resize);
-
-            function addLog(name, status) {
-                const panel = document.getElementById('logPanel');
-                const time = new Date().toLocaleTimeString();
-                const div = document.createElement('div');
-                div.className = 'log-item';
-                div.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-name">${name}</span> <span class="log-msg">${status}</span>`;
-                panel.prepend(div);
-                if(panel.children.length > 30) panel.lastChild.remove();
-            }
-
-            // Dastlabki log
-            agents.forEach(a => addLog(a.name, "Tizimga ulandi (24/7)"));
-
-            // Har 5 sekundda log va motivatsiya
-            setInterval(() => {
-                const agent = agents[Math.floor(Math.random() * agents.length)];
-                const actions = ["Vazifa bajarildi ✅", "Yangi buyruq qabul qildi 📨", "Tizimni tekshirmoqda 🔍", "Ma'lumot yubordi 📤"];
-                addLog(agent.name, actions[Math.floor(Math.random() * actions.length)]);
-                
-                // Motivatsiya banneri va xabari
-                const banner = document.getElementById('motivationBanner');
-                const phrase = motivationPhrases[Math.floor(Math.random() * motivationPhrases.length)];
-                banner.innerText = phrase;
-                banner.style.display = 'block';
-                addLog("Motivatsiya", phrase);
-                setTimeout(() => { banner.style.display = 'none'; }, 4000);
-
-            }, 5000);
-
-            function animate() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Grid
-                ctx.strokeStyle = '#1a1a3a';
-                ctx.lineWidth = 1;
-                for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
-                for(let j=0; j<canvas.height; j+=50) { ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(canvas.width,j); ctx.stroke(); }
-
-                agents.forEach(a => {
-                    a.x += a.vx; a.y += a.vy;
-                    if(a.x < 20 || a.x > canvas.width-20) a.vx *= -1;
-                    if(a.y < 20 || a.y > canvas.height-20) a.vy *= -1;
-
-                    // Chizish
-                    ctx.fillStyle = '#3b82f6';
-                    ctx.shadowBlur = 15; ctx.shadowColor = '#3b82f6';
-                    ctx.beginPath(); ctx.arc(a.x, a.y, 6, 0, Math.PI*2); ctx.fill();
-                    ctx.shadowBlur = 0;
-                    
-                    ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 11px Inter';
-                    ctx.fillText(a.name, a.x-20, a.y-15);
-                    
-                    // Status chiziq
-                    ctx.fillStyle = '#10b981';
-                    ctx.fillRect(a.x-15, a.y+8, 30, 2);
-                });
-
-                requestAnimationFrame(animate);
-            }
-            animate();
-        }
-
-        // -------- CHAT SYSTEM --------
-        function renderChat() {
-            const container = document.getElementById('chatMessages');
-            const target = isAdmin ? selectedClient : 'admin';
-            if(!target) { container.innerHTML = '<div style="color:var(--text-muted); text-align:center;">Suhbat tanlanmagan</div>'; return; }
-
-            const chatKey = isAdmin ? `admin_${target}` : `user_${currentUser}`;
-            const msgs = chatHistory[chatKey] || [];
-            
-            container.innerHTML = '';
-            msgs.forEach(m => {
-                const div = document.createElement('div');
-                div.className = `msg ${m.sender === 'admin' && isAdmin ? 'msg-admin' : m.sender === 'admin' ? 'msg-admin' : 'msg-client'}`;
-                div.style.alignSelf = (m.sender === 'admin' && isAdmin) ? 'flex-end' : (m.sender === 'client' && !isAdmin) ? 'flex-end' : 'flex-start';
-                div.innerText = m.text;
-                container.appendChild(div);
-            });
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function sendChat() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if(!text) return;
-
-            let target = isAdmin ? selectedClient : 'admin';
-            if(!target) return alert("Iltimos, suhbatdoshingizni tanlang!");
-
-            const chatKey = isAdmin ? `admin_${target}` : `user_${currentUser}`;
-            if(!chatHistory[chatKey]) chatHistory[chatKey] = [];
-            
-            const msg = { text: text, sender: isAdmin ? 'admin' : 'client', time: Date.now() };
-            chatHistory[chatKey].push(msg);
-            localStorage.setItem('tracker_chats', JSON.stringify(chatHistory));
-
-            input.value = '';
-            renderChat();
-            if(isAdmin) updateClientList();
-        }
-
-        function initAdmin() {
-            startTracker();
-            updateClientList();
-            document.getElementById('clientList').addEventListener('click', (e) => {
-                const item = e.target.closest('.client-item');
-                if(item) {
-                    selectedClient = item.dataset.client;
-                    document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
-                    item.classList.add('active');
-                    renderChat();
-                }
-            });
-        }
-
-        function updateClientList() {
-            const clients = ['user']; // Oddiy demo uchun
-            const container = document.getElementById('clientList');
-            container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:5px;">Mijozlar ro'yxati</div>`;
-            clients.forEach(c => {
-                const div = document.createElement('div');
-                div.className = `client-item ${selectedClient === c ? 'active' : ''}`;
-                div.dataset.client = c;
-                div.innerHTML = `<div class="avatar-small">${c.charAt(0).toUpperCase()}</div><div>${c}</div>`;
-                container.appendChild(div);
-            });
-        }
-
-        function initClient() {
-            startTracker();
-            document.getElementById('clientList').style.display = 'none';
-            renderChat();
-            // Mijoz avtomatik admin bilan suhbatni ochadi
-            selectedClient = 'admin';
-            document.getElementById('chatInput').placeholder = "Admin ga xabar yozing...";
-        }
-
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
