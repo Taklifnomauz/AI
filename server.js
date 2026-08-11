@@ -62,12 +62,9 @@ async function initDatabase() {
   );
 
   if (!setting.length) {
-    await db(
-      `INSERT INTO settings (id) VALUES (1)`
-    );
+    await db(`INSERT INTO settings (id) VALUES (1)`);
   }
 
-  // ADMIN_PASSWORD bo'lsa admin yaratamiz
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (adminPassword) {
@@ -132,9 +129,7 @@ function getBearer(req) {
 async function getUserFromRequest(req) {
   const token = getBearer(req);
 
-  if (!token) {
-    return null;
-  }
+  if (!token) return null;
 
   const rows = await db(
     `SELECT id, username, email, is_admin, created_at, last_seen
@@ -160,10 +155,7 @@ async function requireUser(req, res, next) {
     next();
   } catch (error) {
     console.error("AUTH ERROR:", error);
-
-    res.status(500).json({
-      error: "Server xatosi",
-    });
+    res.status(500).json({ error: "Server xatosi" });
   }
 }
 
@@ -181,10 +173,7 @@ async function requireAdmin(req, res, next) {
     next();
   } catch (error) {
     console.error("ADMIN AUTH ERROR:", error);
-
-    res.status(500).json({
-      error: "Server xatosi",
-    });
+    res.status(500).json({ error: "Server xatosi" });
   }
 }
 
@@ -214,30 +203,16 @@ async function askGemini(userText, history = []) {
     settings.system_prompt ||
     "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi yordamchisiz.";
 
-  // Suhbat tarixidan kontekst
   const contents = history
     .slice(-20)
     .map((item) => ({
-      role:
-        item.sender === "assistant"
-          ? "model"
-          : "user",
-
-      parts: [
-        {
-          text: String(item.text),
-        },
-      ],
+      role: item.sender === "assistant" ? "model" : "user",
+      parts: [{ text: String(item.text) }],
     }));
 
-  // Hozirgi xabar
   contents.push({
     role: "user",
-    parts: [
-      {
-        text: userText,
-      },
-    ],
+    parts: [{ text: userText }],
   });
 
   const url =
@@ -254,23 +229,14 @@ async function askGemini(userText, history = []) {
 
     body: JSON.stringify({
       systemInstruction: {
-        parts: [
-          {
-            text: systemPrompt,
-          },
-        ],
+        parts: [{ text: systemPrompt }],
       },
 
       contents,
 
       generationConfig: {
-        temperature: Number(
-          settings.temperature ?? 0.7
-        ),
-
-        maxOutputTokens: Number(
-          settings.max_tokens ?? 1024
-        ),
+        temperature: Number(settings.temperature ?? 0.7),
+        maxOutputTokens: Number(settings.max_tokens ?? 1024),
       },
     }),
   });
@@ -278,27 +244,20 @@ async function askGemini(userText, history = []) {
   const data = await response.json();
 
   if (!response.ok) {
-    console.error(
-      "GEMINI ERROR:",
-      JSON.stringify(data)
-    );
+    console.error("GEMINI ERROR:", JSON.stringify(data));
 
     throw new Error(
-      data?.error?.message ||
-        `Gemini HTTP ${response.status}`
+      data?.error?.message || `Gemini HTTP ${response.status}`
     );
   }
 
-  const text =
-    data?.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text || "")
-      .join("")
-      .trim();
+  const text = data?.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text || "")
+    .join("")
+    .trim();
 
   if (!text) {
-    throw new Error(
-      "Gemini bo'sh javob qaytardi."
-    );
+    throw new Error("Gemini bo'sh javob qaytardi.");
   }
 
   return text;
@@ -313,9 +272,7 @@ app.get("/health", async (req, res) => {
     res.json({
       ok: true,
       database: "connected",
-      gemini: Boolean(
-        process.env.GEMINI_API_KEY
-      ),
+      gemini: Boolean(process.env.GEMINI_API_KEY),
     });
   } catch (error) {
     res.status(500).json({
@@ -330,11 +287,7 @@ app.get("/health", async (req, res) => {
 
 async function registerHandler(req, res) {
   try {
-    const {
-      username,
-      email = "",
-      password,
-    } = req.body || {};
+    const { username, email = "", password } = req.body || {};
 
     if (!username || !password) {
       return res.status(400).json({
@@ -344,14 +297,11 @@ async function registerHandler(req, res) {
 
     if (String(password).length < 6) {
       return res.status(400).json({
-        error:
-          "Parol kamida 6 ta belgidan iborat bo'lsin",
+        error: "Parol kamida 6 ta belgidan iborat bo'lsin",
       });
     }
 
-    const hash = hashPassword(
-      String(password)
-    );
+    const hash = hashPassword(String(password));
 
     const rows = await db(
       `INSERT INTO users
@@ -373,19 +323,14 @@ async function registerHandler(req, res) {
   } catch (error) {
     if (error.code === "23505") {
       return res.status(409).json({
-        error:
-          "Bu username allaqachon mavjud",
+        error: "Bu username allaqachon mavjud",
       });
     }
 
-    console.error(
-      "REGISTER ERROR:",
-      error
-    );
+    console.error("REGISTER ERROR:", error);
 
     res.status(500).json({
-      error:
-        "Ro'yxatdan o'tishda server xatosi",
+      error: "Ro'yxatdan o'tishda server xatosi",
     });
   }
 }
@@ -394,10 +339,7 @@ async function registerHandler(req, res) {
 
 async function loginHandler(req, res) {
   try {
-    const {
-      username,
-      password,
-    } = req.body || {};
+    const { username, password } = req.body || {};
 
     if (!username || !password) {
       return res.status(400).json({
@@ -405,9 +347,7 @@ async function loginHandler(req, res) {
       });
     }
 
-    const hash = hashPassword(
-      String(password)
-    );
+    const hash = hashPassword(String(password));
 
     const rows = await db(
       `SELECT id, username, email, is_admin, created_at, last_seen
@@ -415,16 +355,12 @@ async function loginHandler(req, res) {
        WHERE username = $1
        AND password_hash = $2
        LIMIT 1`,
-      [
-        String(username).trim(),
-        hash,
-      ]
+      [String(username).trim(), hash]
     );
 
     if (!rows.length) {
       return res.status(401).json({
-        error:
-          "Username yoki parol noto'g'ri",
+        error: "Username yoki parol noto'g'ri",
       });
     }
 
@@ -441,248 +377,172 @@ async function loginHandler(req, res) {
       token: String(rows[0].id),
     });
   } catch (error) {
-    console.error(
-      "LOGIN ERROR:",
-      error
-    );
+    console.error("LOGIN ERROR:", error);
 
     res.status(500).json({
-      error:
-        "Kirishda server xatosi",
+      error: "Kirishda server xatosi",
     });
   }
 }
 
-app.post(
-  "/api/auth/register",
-  registerHandler
-);
-
-app.post(
-  "/api/register",
-  registerHandler
-);
-
-app.post(
-  "/api/auth/login",
-  loginHandler
-);
-
-app.post(
-  "/api/login",
-  loginHandler
-);
+app.post("/api/auth/register", registerHandler);
+app.post("/api/register", registerHandler);
+app.post("/api/auth/login", loginHandler);
+app.post("/api/login", loginHandler);
 
 // ================= ME =================
 
-app.get(
-  "/api/me",
-  requireUser,
-  async (req, res) => {
-    res.json({
-      success: true,
-      user: safeUser(req.user),
-    });
-  }
-);
+app.get("/api/me", requireUser, async (req, res) => {
+  res.json({
+    success: true,
+    user: safeUser(req.user),
+  });
+});
 
 // ================= CHAT HISTORY =================
 
-app.get(
-  "/api/chat/history",
-  requireUser,
-  async (req, res) => {
-    try {
-      const rows = await db(
-        `SELECT id, sender, text, created_at
-         FROM messages
-         WHERE user_id = $1
-         ORDER BY created_at ASC
-         LIMIT 200`,
-        [req.user.id]
-      );
+app.get("/api/chat/history", requireUser, async (req, res) => {
+  try {
+    const rows = await db(
+      `SELECT id, sender, text, created_at
+       FROM messages
+       WHERE user_id = $1
+       ORDER BY created_at ASC
+       LIMIT 200`,
+      [req.user.id]
+    );
 
-      res.json({
-        success: true,
-        messages: rows,
-      });
-    } catch (error) {
-      console.error(
-        "HISTORY ERROR:",
-        error
-      );
+    res.json({
+      success: true,
+      messages: rows,
+    });
+  } catch (error) {
+    console.error("HISTORY ERROR:", error);
 
-      res.status(500).json({
-        error:
-          "Suhbat tarixini olishda xato",
-      });
-    }
+    res.status(500).json({
+      error: "Suhbat tarixini olishda xato",
+    });
   }
-);
+});
 
 // ================= CHAT =================
 
-app.post(
-  "/api/chat",
-  requireUser,
-  async (req, res) => {
-    try {
-      const text = String(
-        req.body?.message ||
-          req.body?.text ||
-          ""
-      ).trim();
+app.post("/api/chat", requireUser, async (req, res) => {
+  try {
+    const text = String(
+      req.body?.message ||
+      req.body?.text ||
+      ""
+    ).trim();
 
-      if (!text) {
-        return res.status(400).json({
-          error: "Xabar bo'sh",
-        });
-      }
-
-      // Oldingi suhbat
-      const previous = await db(
-        `SELECT sender, text
-         FROM messages
-         WHERE user_id = $1
-         ORDER BY created_at ASC
-         LIMIT 40`,
-        [req.user.id]
-      );
-
-      // User xabarini saqlash
-      await db(
-        `INSERT INTO messages
-        (user_id, sender, text)
-        VALUES ($1, 'user', $2)`,
-        [
-          req.user.id,
-          text,
-        ]
-      );
-
-      await db(
-        `UPDATE users
-         SET last_seen = NOW()
-         WHERE id = $1`,
-        [req.user.id]
-      );
-
-      let answer;
-
-      try {
-        answer = await askGemini(
-          text,
-          previous
-        );
-      } catch (aiError) {
-        console.error(
-          "AI ERROR:",
-          aiError
-        );
-
-        return res.status(502).json({
-          error:
-            "AI javobida xato",
-          detail:
-            aiError.message,
-        });
-      }
-
-      // AI javobini saqlash
-      const saved = await db(
-        `INSERT INTO messages
-        (user_id, sender, text)
-        VALUES ($1, 'assistant', $2)
-        RETURNING id, sender, text, created_at`,
-        [
-          req.user.id,
-          answer,
-        ]
-      );
-
-      res.json({
-        success: true,
-        message: saved[0],
-        reply: answer,
-      });
-    } catch (error) {
-      console.error(
-        "CHAT ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        error:
-          "Xabar yuborishda server xatosi",
+    if (!text) {
+      return res.status(400).json({
+        error: "Xabar bo'sh",
       });
     }
+
+    const previous = await db(
+      `SELECT sender, text
+       FROM messages
+       WHERE user_id = $1
+       ORDER BY created_at ASC
+       LIMIT 40`,
+      [req.user.id]
+    );
+
+    await db(
+      `INSERT INTO messages
+      (user_id, sender, text)
+      VALUES ($1, 'user', $2)`,
+      [req.user.id, text]
+    );
+
+    await db(
+      `UPDATE users
+       SET last_seen = NOW()
+       WHERE id = $1`,
+      [req.user.id]
+    );
+
+    let answer;
+
+    try {
+      answer = await askGemini(text, previous);
+    } catch (aiError) {
+      console.error("AI ERROR:", aiError);
+
+      return res.status(502).json({
+        error: "AI javobida xato",
+        detail: aiError.message,
+      });
+    }
+
+    const saved = await db(
+      `INSERT INTO messages
+      (user_id, sender, text)
+      VALUES ($1, 'assistant', $2)
+      RETURNING id, sender, text, created_at`,
+      [req.user.id, answer]
+    );
+
+    res.json({
+      success: true,
+      message: saved[0],
+      reply: answer,
+    });
+  } catch (error) {
+    console.error("CHAT ERROR:", error);
+
+    res.status(500).json({
+      error: "Xabar yuborishda server xatosi",
+    });
   }
-);
+});
 
 // ================= ADMIN =================
 
-app.get(
-  "/admin",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "public",
-        "index.html"
-      )
-    );
+app.get("/admin", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "public", "index.html")
+  );
+});
+
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  try {
+    const rows = await db(`
+      SELECT
+        u.id,
+        u.username,
+        u.email,
+        u.is_admin,
+        u.created_at,
+        u.last_seen,
+        COUNT(m.id)::int AS message_count
+      FROM users u
+      LEFT JOIN messages m ON m.user_id = u.id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      users: rows,
+    });
+  } catch (error) {
+    console.error("ADMIN USERS ERROR:", error);
+
+    res.status(500).json({
+      error: "Foydalanuvchilarni olishda xato",
+    });
   }
-);
+});
 
-// Foydalanuvchilar
-app.get(
-  "/api/admin/users",
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const rows = await db(`
-        SELECT
-          u.id,
-          u.username,
-          u.email,
-          u.is_admin,
-          u.created_at,
-          u.last_seen,
-          COUNT(m.id)::int AS message_count
-        FROM users u
-        LEFT JOIN messages m
-          ON m.user_id = u.id
-        GROUP BY u.id
-        ORDER BY u.created_at DESC
-      `);
-
-      res.json({
-        success: true,
-        users: rows,
-      });
-    } catch (error) {
-      console.error(
-        "ADMIN USERS ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        error:
-          "Foydalanuvchilarni olishda xato",
-      });
-    }
-  }
-);
-
-// Bitta odamning chatlari
 app.get(
   "/api/admin/users/:id/messages",
   requireAdmin,
   async (req, res) => {
     try {
-      const userId = Number(
-        req.params.id
-      );
+      const userId = Number(req.params.id);
 
       const users = await db(
         `SELECT
@@ -699,8 +559,7 @@ app.get(
 
       if (!users.length) {
         return res.status(404).json({
-          error:
-            "Foydalanuvchi topilmadi",
+          error: "Foydalanuvchi topilmadi",
         });
       }
 
@@ -723,76 +582,91 @@ app.get(
         messages,
       });
     } catch (error) {
-      console.error(
-        "ADMIN MESSAGES ERROR:",
-        error
-      );
+      console.error("ADMIN MESSAGES ERROR:", error);
 
       res.status(500).json({
-        error:
-          "Suhbatni olishda xato",
+        error: "Suhbatni olishda xato",
       });
     }
   }
 );
 
-// Admin foydalanuvchiga yozadi
-app.post(
-  "/api/admin/reply",
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const userId = Number(
-        req.body?.user_id
-      );
+app.post("/api/admin/reply", requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.body?.user_id);
 
-      const text = String(
-        req.body?.message ||
-          req.body?.text ||
-          ""
-      ).trim();
+    const text = String(
+      req.body?.message ||
+      req.body?.text ||
+      ""
+    ).trim();
 
-      if (!userId || !text) {
-        return res.status(400).json({
-          error:
-            "user_id va xabar kerak",
-        });
-      }
-
-      const rows = await db(
-        `INSERT INTO messages
-        (user_id, sender, text)
-        VALUES ($1, 'admin', $2)
-        RETURNING id, sender, text, created_at`,
-        [
-          userId,
-          text,
-        ]
-      );
-
-      res.json({
-        success: true,
-        message: rows[0],
-      });
-    } catch (error) {
-      console.error(
-        "ADMIN REPLY ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        error:
-          "Admin xabarini saqlashda xato",
+    if (!userId || !text) {
+      return res.status(400).json({
+        error: "user_id va xabar kerak",
       });
     }
-  }
-);
 
-// Admin sozlamalari
-app.get(
-  "/api/admin/settings",
-  requireAdmin,
-  async (req, res) => {
+    const rows = await db(
+      `INSERT INTO messages
+      (user_id, sender, text)
+      VALUES ($1, 'admin', $2)
+      RETURNING id, sender, text, created_at`,
+      [userId, text]
+    );
+
+    res.json({
+      success: true,
+      message: rows[0],
+    });
+  } catch (error) {
+    console.error("ADMIN REPLY ERROR:", error);
+
+    res.status(500).json({
+      error: "Admin xabarini saqlashda xato",
+    });
+  }
+});
+
+app.get("/api/admin/settings", requireAdmin, async (req, res) => {
+  const rows = await db(
+    `SELECT *
+     FROM settings
+     WHERE id = 1`
+  );
+
+  res.json({
+    success: true,
+    settings: rows[0],
+  });
+});
+
+app.post("/api/admin/settings", requireAdmin, async (req, res) => {
+  try {
+    const {
+      system_prompt,
+      temperature = 0.7,
+      max_tokens = 1024,
+      model = "gemini-3.6-flash",
+    } = req.body || {};
+
+    await db(
+      `UPDATE settings
+       SET
+         system_prompt = $1,
+         temperature = $2,
+         max_tokens = $3,
+         model = $4,
+         updated_at = NOW()
+       WHERE id = 1`,
+      [
+        String(system_prompt || ""),
+        Number(temperature),
+        Number(max_tokens),
+        String(model),
+      ]
+    );
+
     const rows = await db(
       `SELECT *
        FROM settings
@@ -803,91 +677,29 @@ app.get(
       success: true,
       settings: rows[0],
     });
+  } catch (error) {
+    console.error("ADMIN SETTINGS ERROR:", error);
+
+    res.status(500).json({
+      error: "Sozlamalarni saqlashda xato",
+    });
   }
-);
-
-app.post(
-  "/api/admin/settings",
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const {
-        system_prompt,
-        temperature = 0.7,
-        max_tokens = 1024,
-        model = "gemini-3.6-flash",
-      } = req.body || {};
-
-      await db(
-        `UPDATE settings
-         SET
-           system_prompt = $1,
-           temperature = $2,
-           max_tokens = $3,
-           model = $4,
-           updated_at = NOW()
-         WHERE id = 1`,
-        [
-          String(
-            system_prompt || ""
-          ),
-          Number(
-            temperature
-          ),
-          Number(
-            max_tokens
-          ),
-          String(model),
-        ]
-      );
-
-      const rows = await db(
-        `SELECT *
-         FROM settings
-         WHERE id = 1`
-      );
-
-      res.json({
-        success: true,
-        settings: rows[0],
-      });
-    } catch (error) {
-      console.error(
-        "ADMIN SETTINGS ERROR:",
-        error
-      );
-
-      res.status(500).json({
-        error:
-          "Sozlamalarni saqlashda xato",
-      });
-    }
-  }
-);
+});
 
 // ================= FRONTEND =================
 
 app.use(
   express.static(
-    path.join(
-      __dirname,
-      "public"
-    )
+    path.join(__dirname, "public")
   )
 );
 
-app.get(
-  "*",
-  (req, res) => {
-    res.sendFile(
-      path.join(
-        __dirname,
-        "public",
-        "index.html"
-      )
-    );
-  }
-);
+// Express 5 uchun app.get("*") o'rniga middleware
+app.use((req, res) => {
+  res.sendFile(
+    path.join(__dirname, "public", "index.html")
+  );
+});
 
 // ================= START =================
 
@@ -895,9 +707,7 @@ async function start() {
   try {
     await initDatabase();
 
-    console.log(
-      "PostgreSQL: connected"
-    );
+    console.log("PostgreSQL: connected");
 
     console.log(
       "Gemini API key:",
@@ -906,20 +716,13 @@ async function start() {
         : "NOT configured"
     );
 
-    app.listen(
-      PORT,
-      () => {
-        console.log(
-          `Qamir AI server running on port ${PORT}`
-        );
-      }
-    );
+    app.listen(PORT, () => {
+      console.log(
+        `Qamir AI server running on port ${PORT}`
+      );
+    });
   } catch (error) {
-    console.error(
-      "STARTUP ERROR:",
-      error
-    );
-
+    console.error("STARTUP ERROR:", error);
     process.exit(1);
   }
 }
