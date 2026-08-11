@@ -337,6 +337,174 @@ async function requireAdmin(req, res, next) {
 
 // =====================================================
 // GEMINI AI
+// ================= GEMINI AI =================
+
+async function askGemini(userText, history = []) {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "GEMINI_API_KEY Render Environment'da sozlanmagan."
+    );
+  }
+
+  // Database'dan AI sozlamalarini olamiz
+  const settingsRows = await db(`
+    SELECT
+      system_prompt,
+      temperature,
+      max_tokens,
+      model
+    FROM settings
+    WHERE id = 1
+    LIMIT 1
+  `);
+
+  const settings = settingsRows[0] || {};
+
+  // Gemini modeli
+  const model =
+    process.env.GEMINI_MODEL ||
+    settings.model ||
+    "gemini-2.5-flash";
+
+  const systemPrompt =
+    settings.system_prompt ||
+    "Siz Qamir AI nomli O'zbek tilida so'zlashuvchi aqlli yordamchisiz. Foydalanuvchiga foydali, xushmuomala va aniq javob bering.";
+
+  console.log("Gemini model:", model);
+  console.log(
+    "Gemini API key:",
+    apiKey ? "configured" : "NOT configured"
+  );
+
+  // Suhbat tarixini Gemini formatiga o'tkazamiz
+  const contents = [];
+
+  for (const item of history.slice(-20)) {
+    const text = String(item.text || "").trim();
+
+    if (!text) continue;
+
+    // Faqat user va assistant xabarlarini yuboramiz
+    if (
+      item.sender !== "user" &&
+      item.sender !== "assistant"
+    ) {
+      continue;
+    }
+
+    contents.push({
+      role:
+        item.sender === "assistant"
+          ? "model"
+          : "user",
+
+      parts: [
+        {
+          text: text,
+        },
+      ],
+    });
+  }
+
+  // Hozirgi user xabari
+  contents.push({
+    role: "user",
+    parts: [
+      {
+        text: String(userText),
+      },
+    ],
+  });
+
+  // MUHIM: Gemini API URL
+  const url =
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+    encodeURIComponent(model) +
+    ":generateContent";
+
+  console.log("Gemini URL:", url);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [
+            {
+              text: systemPrompt,
+            },
+          ],
+        },
+
+        contents: contents,
+
+        generationConfig: {
+          temperature: Number(
+            settings.temperature ?? 0.7
+          ),
+
+          maxOutputTokens: Number(
+            settings.max_tokens ?? 1024
+          ),
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    console.log(
+      "Gemini HTTP status:",
+      response.status
+    );
+
+    if (!response.ok) {
+      console.error(
+        "GEMINI ERROR:",
+        JSON.stringify(data, null, 2)
+      );
+
+      throw new Error(
+        data?.error?.message ||
+        `Gemini HTTP ${response.status}`
+      );
+    }
+
+    const answer =
+      data?.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        .join("")
+        .trim();
+
+    if (!answer) {
+      console.error(
+        "Gemini bo'sh javob:",
+        JSON.stringify(data, null, 2)
+      );
+
+      throw new Error(
+        "Gemini bo'sh javob qaytardi."
+      );
+    }
+
+    return answer;
+
+  } catch (error) {
+    console.error(
+      "GEMINI REQUEST ERROR:",
+      error
+    );
+
+    throw error;
+  }
+}
 // =====================================================
 
 async function askGemini(userText, history = []) {
